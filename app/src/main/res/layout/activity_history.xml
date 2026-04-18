@@ -6,7 +6,10 @@
     android:layout_height="match_parent"
     android:background="@color/app_surface"
     android:fitsSystemWindows="true"
-    android:padding="16dp"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="48dp"
+    android:paddingBottom="16dp"
     tools:context=".activities.HistoryActivity">
 
     <ImageButton
