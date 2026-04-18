@@ -1,13 +1,25 @@
 package com.example.offlinechatsecure.activities;
 
+import android.content.ContentValues;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -22,6 +34,11 @@ import com.example.offlinechatsecure.network.BluetoothConnectionManager;
 import com.example.offlinechatsecure.network.BluetoothSession;
 import com.example.offlinechatsecure.utils.AppAuthState;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,14 +59,36 @@ public class ChatActivity extends AppCompatActivity {
     private String peerAddress;
     private boolean disconnectAlertShown;
     private boolean readOnlyMode;
+    private static final long MAX_FILE_BYTES = 4L * 1024 * 1024;
+    private static final String TAG = "ChatActivity";
+
+    private final ActivityResultLauncher<String> filePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    handlePickedFile(uri);
+                }
+            }
+    );
+
     private final BluetoothConnectionManager.MessageListener incomingMessageListener =
-            message -> runOnUiThread(() -> {
-                ChatMessage incoming = new ChatMessage(message, System.currentTimeMillis(), false);
-                chatMessages.add(incoming);
-                messageAdapter.addMessage(incoming);
-                dbHelper.insertMessage(peerAddress, incoming);
-                rvMessages.scrollToPosition(messageAdapter.getItemCount() - 1);
-            });
+            new BluetoothConnectionManager.MessageListener() {
+                @Override
+                public void onMessageReceived(@NonNull String message) {
+                    runOnUiThread(() -> {
+                        ChatMessage incoming = new ChatMessage(message, System.currentTimeMillis(), false);
+                        chatMessages.add(incoming);
+                        messageAdapter.addMessage(incoming);
+                        dbHelper.insertMessage(peerAddress, incoming);
+                        rvMessages.scrollToPosition(messageAdapter.getItemCount() - 1);
+                    });
+                }
+
+                @Override
+                public void onFileReceived(@NonNull String fileName, @NonNull byte[] data) {
+                    runOnUiThread(() -> handleIncomingFile(fileName, data));
+                }
+            };
     private final BluetoothConnectionManager.ConnectionListener connectionStateListener =
             (state, detail) -> runOnUiThread(() -> {
                 boolean connected = state == BluetoothConnectionManager.ConnectionState.CONNECTED;
@@ -143,6 +182,19 @@ public class ChatActivity extends AppCompatActivity {
         btnSend.setOnClickListener(v -> {
             sendCurrentInputMessage();
         });
+        ImageButton btnAttach = findViewById(R.id.btnAttach);
+        if (btnAttach != null) {
+            btnAttach.setOnClickListener(v -> {
+                if (readOnlyMode) {
+                    return;
+                }
+                try {
+                    filePickerLauncher.launch("*/*");
+                } catch (Exception ignored) {
+                    Toast.makeText(this, R.string.chat_file_send_failed, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
         if (readOnlyMode) {
             setSendEnabled(false);
             View inputContainer = findViewById(R.id.inputContainer);
@@ -229,6 +281,122 @@ public class ChatActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .setPositiveButton(R.string.exit_label, (dialog, which) -> finish())
                 .show();
+    }
+
+    private void handlePickedFile(@NonNull Uri uri) {
+        if (connectionManager == null || !connectionManager.isConnected()) {
+            Toast.makeText(this, R.string.chat_connection_unavailable, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String fileName = queryDisplayName(uri);
+        byte[] bytes;
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) {
+                Toast.makeText(this, R.string.chat_file_send_failed, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+            byte[] tmp = new byte[8192];
+            int n;
+            long total = 0;
+            while ((n = in.read(tmp)) > 0) {
+                total += n;
+                if (total > MAX_FILE_BYTES) {
+                    Toast.makeText(this, R.string.chat_file_too_large, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                buf.write(tmp, 0, n);
+            }
+            bytes = buf.toByteArray();
+        } catch (IOException ioException) {
+            Log.w(TAG, "Failed to read picked file", ioException);
+            Toast.makeText(this, R.string.chat_file_send_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean sent = connectionManager.sendFile(fileName, bytes);
+        if (!sent) {
+            Toast.makeText(this, R.string.chat_file_send_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String label = getString(R.string.chat_file_sent, fileName);
+        ChatMessage msg = new ChatMessage(label, System.currentTimeMillis(), true);
+        chatMessages.add(msg);
+        messageAdapter.addMessage(msg);
+        dbHelper.insertMessage(peerAddress, msg);
+        rvMessages.scrollToPosition(messageAdapter.getItemCount() - 1);
+    }
+
+    private void handleIncomingFile(@NonNull String fileName, @NonNull byte[] data) {
+        String savedPath = saveIncomingFile(fileName, data);
+        String label = getString(R.string.chat_file_received, fileName);
+        if (savedPath != null) {
+            label = label + "\n" + getString(R.string.chat_file_saved_to, savedPath);
+        }
+        ChatMessage msg = new ChatMessage(label, System.currentTimeMillis(), false);
+        chatMessages.add(msg);
+        messageAdapter.addMessage(msg);
+        dbHelper.insertMessage(peerAddress, msg);
+        rvMessages.scrollToPosition(messageAdapter.getItemCount() - 1);
+    }
+
+    private String queryDisplayName(@NonNull Uri uri) {
+        String fallback = "file_" + System.currentTimeMillis();
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) {
+                    String name = cursor.getString(idx);
+                    if (name != null && !name.trim().isEmpty()) {
+                        return name;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // best effort
+        }
+        return fallback;
+    }
+
+    private String saveIncomingFile(@NonNull String fileName, @NonNull byte[] data) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                values.put(MediaStore.Downloads.RELATIVE_PATH,
+                        Environment.DIRECTORY_DOWNLOADS + "/BlueLink");
+                Uri uri = getContentResolver().insert(
+                        MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) {
+                    return null;
+                }
+                try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    if (out != null) {
+                        out.write(data);
+                    }
+                }
+                return "Downloads/BlueLink/" + fileName;
+            } else {
+                File dir = new File(
+                        Environment.getExternalStoragePublicDirectory(
+                                Environment.DIRECTORY_DOWNLOADS),
+                        "BlueLink"
+                );
+                if (!dir.exists() && !dir.mkdirs()) {
+                    dir = getFilesDir();
+                }
+                File out = new File(dir, fileName);
+                try (FileOutputStream fos = new FileOutputStream(out)) {
+                    fos.write(data);
+                }
+                return out.getAbsolutePath();
+            }
+        } catch (IOException ioException) {
+            Log.w(TAG, "Failed to save incoming file", ioException);
+            return null;
+        }
     }
 
 }

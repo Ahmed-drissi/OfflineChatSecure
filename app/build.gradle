@@ -37,6 +37,7 @@ dependencies {
     implementation libs.constraintlayout
     implementation libs.biometric
     implementation libs.recyclerview
+    implementation libs.swiperefresh
     implementation libs.lifecycle.process
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

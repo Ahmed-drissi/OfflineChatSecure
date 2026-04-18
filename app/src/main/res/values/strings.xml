@@ -19,6 +19,8 @@
     <string name="chat_status_archived">Archived</string>
     <string name="chat_day_today">Today</string>
     <string name="device_filter_hint">Filter devices…</string>
+    <string name="make_discoverable">Make discoverable</string>
+    <string name="discoverable_active">Visible to peers for %1$d seconds</string>
     <string name="splash_auth_message">Secure peer-to-peer messaging over Bluetooth — no internet needed</string>
     <string name="biometric_title">Unlock OfflineChatSecure</string>
     <string name="biometric_subtitle">Use biometrics or choose PIN/password</string>
@@ -76,6 +78,11 @@
     <string name="connect_before_chat">Connect to a device before opening chat.</string>
     <string name="chat_connection_unavailable">No active Bluetooth connection.</string>
     <string name="chat_send_failed">Failed to send message. Try reconnecting.</string>
+    <string name="chat_file_too_large">File too large to send (max 4 MB).</string>
+    <string name="chat_file_send_failed">Failed to send file.</string>
+    <string name="chat_file_received">📎 Received file: %1$s</string>
+    <string name="chat_file_sent">📎 Sent file: %1$s</string>
+    <string name="chat_file_saved_to">Saved to %1$s</string>
     <string name="chat_disconnected_title">Disconnected</string>
     <string name="chat_disconnected_message">The Bluetooth connection was lost.</string>
     <string name="chat_disconnected_message_with_detail">The Bluetooth connection was lost: %1$s</string>

@@ -59,8 +59,10 @@
                 android:id="@+id/tvDeviceName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Material3.DisplaySmall"
-                android:textColor="@color/app_on_surface"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/app_on_surface_strong"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 tools:text="Galaxy S24" />
 
@@ -70,8 +72,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:fontFamily="monospace"
-                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
                 android:textColor="@color/app_on_surface_variant"
+                android:textSize="11sp"
                 tools:text="A1:B2:C3:D4:E5:F6" />
 
         </LinearLayout>
@@ -119,5 +121,3 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>
-
-

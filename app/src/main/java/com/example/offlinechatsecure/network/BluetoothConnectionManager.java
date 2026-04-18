@@ -10,6 +10,10 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import android.util.Base64;
+
+import android.util.Base64;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -35,8 +39,10 @@ public class BluetoothConnectionManager {
         void onStateChanged(@NonNull ConnectionState state, @Nullable String detail);
     }
 
+        default void onFileReceived(@NonNull String fileName, @NonNull byte[] data) { }
     public interface MessageListener {
         void onMessageReceived(@NonNull String message);
+        default void onFileReceived(@NonNull String fileName, @NonNull byte[] data) { }
     }
 
     public interface ExternalMessageListener {
@@ -138,10 +144,28 @@ public class BluetoothConnectionManager {
         }
 
         if (connectedThread == null) {
+            return false;Frame("T:" + message);
+    }
+
+    public synchronized boolean sendFile(@NonNull String fileName, @NonNull byte[] data) {
+        if (connectedThread == null) {
             return false;
         }
+        String safeName = fileName.replace(":", "_").replace("\n", "_");
+        String encoded = Base64.encodeToString(data, Base64.NO_WRAP);
+        return connectedThread.writeFrame("F:" + safeName + ":" + encoded
+        }
 
-        return connectedThread.writeMessage(message);
+        return connectedThread.writeFrame("T:" + message);
+    }
+
+    public synchronized boolean sendFile(@NonNull String fileName, @NonNull byte[] data) {
+        if (connectedThread == null) {
+            return false;
+        }
+        String safeName = fileName.replace(":", "_").replace("\n", "_");
+        String encoded = Base64.encodeToString(data, Base64.NO_WRAP);
+        return connectedThread.writeFrame("F:" + safeName + ":" + encoded);
     }
 
     public synchronized boolean isConnected() {
@@ -227,19 +251,7 @@ public class BluetoothConnectionManager {
         onConnectionFailed(detail);
     }
 
-    private synchronized void onConnectionLost(@Nullable String detail) {
-        closeConnectThread();
-        closeConnectedThread();
-        closeConnectedSocket();
-        connectedDeviceAddress = null;
-        connectedDeviceName = null;
-        notifyState(ConnectionState.DISCONNECTED, detail == null ? "Connection lost" : detail);
-        if (!isAccepting()) {
-            startAccepting();
-        }
-    }
-
-    private void onIncomingMessage(@NonNull String message) {
+    private synchronized voFrame(@NonNull String frame) {
         MessageListener listenerSnapshot;
         ExternalMessageListener externalListenerSnapshot;
         synchronized (this) {
@@ -247,6 +259,60 @@ public class BluetoothConnectionManager {
             externalListenerSnapshot = externalMessageListener;
         }
 
+        if (frame.startsWith("F:")) {
+            int sep = frame.indexOf(':', 2);
+            if (sep > 2) {
+                final String fileName = frame.substring(2, sep);
+                final String b64 = frame.substring(sep + 1);
+                final byte[] data;
+                try {
+                    data = Base64.decode(b64, Base64.NO_WRAP);
+                } catch (IllegalArgumentException badBase64) {
+                    return;
+                }
+                mainHandler.post(() -> {
+                    if (listenerSnapshot != null) {
+                        listenerSnapshot.onFileReceived(fileName, data);
+                    }
+                });
+                return;
+            }
+        }
+
+        final String message = frame.startsWith("T:") ? frame.substring(2) : frame;        if (!isAccepting()) {
+            startAccepting();
+        }
+    }
+
+    private void onIncomingFrame(@NonNull String frame) {
+        MessageListener listenerSnapshot;
+        ExternalMessageListener externalListenerSnapshot;
+        synchronized (this) {
+            listenerSnapshot = messageListener;
+            externalListenerSnapshot = externalMessageListener;
+        }
+
+        if (frame.startsWith("F:")) {
+            int sep = frame.indexOf(':', 2);
+            if (sep > 2) {
+                final String fileName = frame.substring(2, sep);
+                final String b64 = frame.substring(sep + 1);
+                final byte[] data;
+                try {
+                    data = Base64.decode(b64, Base64.NO_WRAP);
+                } catch (IllegalArgumentException badBase64) {
+                    return;
+                }
+                mainHandler.post(() -> {
+                    if (listenerSnapshot != null) {
+                        listenerSnapshot.onFileReceived(fileName, data);
+                    }
+                });
+                return;
+            }
+        }
+
+        final String message = frame.startsWith("T:") ? frame.substring(2) : frame;
         mainHandler.post(() -> {
             if (listenerSnapshot != null) {
                 listenerSnapshot.onMessageReceived(message);
@@ -446,7 +512,7 @@ public class BluetoothConnectionManager {
 
         void cancel() {
             interrupt();
-            closeSocketQuietly();
+            closeSocketQuietly();8192
         }
 
         private void closeSocketQuietly() {
@@ -468,18 +534,18 @@ public class BluetoothConnectionManager {
         private final BufferedOutputStream outputStream;
 
         ConnectedThread(@NonNull BluetoothSocket socket) {
-            this.socket = socket;
-            try {
-                this.inputStream = new BufferedInputStream(socket.getInputStream());
-                this.outputStream = new BufferedOutputStream(socket.getOutputStream());
+            this.socket = sframe = pending.substring(0, newlineIndex);
+                    pending.delete(0, newlineIndex + 1);
+                    if (!frame.isEmpty()) {
+                        onIncomingFrame(framOutputStream(socket.getOutputStream());
             } catch (IOException ioException) {
                 throw new IllegalStateException("Unable to access socket streams", ioException);
             }
         }
 
-        @Override
-        public void run() {
-            byte[] buffer = new byte[1024];
+        @OverrideFrame(@NonNull String frame) {
+            try {
+                byte[] payload = (fram2];
             StringBuilder pending = new StringBuilder();
 
             while (!isInterrupted()) {
@@ -501,18 +567,18 @@ public class BluetoothConnectionManager {
 
                 int newlineIndex;
                 while ((newlineIndex = pending.indexOf("\n")) >= 0) {
-                    String message = pending.substring(0, newlineIndex).trim();
+                    String frame = pending.substring(0, newlineIndex);
                     pending.delete(0, newlineIndex + 1);
-                    if (!message.isEmpty()) {
-                        onIncomingMessage(message);
+                    if (!frame.isEmpty()) {
+                        onIncomingFrame(frame);
                     }
                 }
             }
         }
 
-        boolean writeMessage(@NonNull String message) {
+        boolean writeFrame(@NonNull String frame) {
             try {
-                byte[] payload = (message + "\n").getBytes(StandardCharsets.UTF_8);
+                byte[] payload = (frame + "\n").getBytes(StandardCharsets.UTF_8);
                 outputStream.write(payload);
                 outputStream.flush();
                 return true;

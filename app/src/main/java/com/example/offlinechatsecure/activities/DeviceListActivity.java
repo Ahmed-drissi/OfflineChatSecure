@@ -15,8 +15,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
-import android.widget.ProgressBar;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,28 +30,32 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.offlinechatsecure.R;
 import com.example.offlinechatsecure.adapters.DeviceListAdapter;
 import com.example.offlinechatsecure.models.BluetoothDeviceItem;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class DeviceListActivity extends AppCompatActivity {
 
     public static final String EXTRA_SELECTED_DEVICE_NAME = "extra_selected_device_name";
     public static final String EXTRA_SELECTED_DEVICE_ADDRESS = "extra_selected_device_address";
 
-    private final Set<BluetoothDeviceItem> discoveredSet = new LinkedHashSet<>();
-    private final List<BluetoothDeviceItem> discoveredList = new ArrayList<>();
+    private static final int DISCOVERABLE_DURATION_SECONDS = 120;
+
+    private final Map<String, BluetoothDeviceItem> discoveredMap = new LinkedHashMap<>();
 
     private BluetoothAdapter bluetoothAdapter;
     private DeviceListAdapter adapter;
-    private ProgressBar progressScanning;
+    private View scanningChip;
     private TextView tvEmptyState;
+    private SwipeRefreshLayout swipeRefresh;
+    private EditText etFilter;
     private boolean receiverRegistered;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean pendingStartAfterSettings;
@@ -68,15 +74,23 @@ public class DeviceListActivity extends AppCompatActivity {
                     return;
                 }
 
-                String deviceName = getSafeDeviceName(device);
+                int rssi = intent.getShortExtra(
+                        BluetoothDevice.EXTRA_RSSI,
+                        (short) BluetoothDeviceItem.RSSI_UNKNOWN
+                );
                 String deviceAddress = device.getAddress();
-                BluetoothDeviceItem item = new BluetoothDeviceItem(deviceName, deviceAddress);
-                if (discoveredSet.add(item)) {
-                    discoveredList.clear();
-                    discoveredList.addAll(discoveredSet);
-                    adapter.setDevices(discoveredList);
-                    updateEmptyState();
+                String deviceName = getSafeDeviceName(device);
+                boolean paired = isBonded(device);
+                BluetoothDeviceItem existing = discoveredMap.get(deviceAddress);
+                if (existing != null) {
+                    existing.setRssi(rssi);
+                } else {
+                    discoveredMap.put(
+                            deviceAddress,
+                            new BluetoothDeviceItem(deviceName, deviceAddress, paired, rssi)
+                    );
                 }
+                publishDevices();
             }
 
             if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
@@ -98,6 +112,19 @@ public class DeviceListActivity extends AppCompatActivity {
                             Toast.LENGTH_LONG
                     ).show();
                     finish();
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> discoverableLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() > 0) {
+                    Toast.makeText(
+                            this,
+                            getString(R.string.discoverable_active, result.getResultCode()),
+                            Toast.LENGTH_SHORT
+                    ).show();
                 }
             }
     );
@@ -146,8 +173,10 @@ public class DeviceListActivity extends AppCompatActivity {
 
     private void setupUi() {
         RecyclerView recyclerView = findViewById(R.id.rvDevices);
-        progressScanning = findViewById(R.id.progressScanning);
+        scanningChip = findViewById(R.id.scanningChip);
         tvEmptyState = findViewById(R.id.tvEmptyState);
+        swipeRefresh = findViewById(R.id.swipeRefreshDevices);
+        etFilter = findViewById(R.id.etDeviceFilter);
 
         adapter = new DeviceListAdapter(item -> {
             Intent data = new Intent();
@@ -160,19 +189,59 @@ public class DeviceListActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        findViewById(R.id.btnScanAgain).setOnClickListener(v -> {
-            if (!hasScanPermissions()) {
-                requestScanPermissions();
-                return;
+        swipeRefresh.setColorSchemeResources(R.color.app_primary);
+        swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.card_background);
+        swipeRefresh.setOnRefreshListener(this::refreshScan);
+
+        findViewById(R.id.btnScanAgain).setOnClickListener(v -> refreshScan());
+        findViewById(R.id.btnDiscoverable).setOnClickListener(v -> requestDiscoverable());
+
+        etFilter.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                adapter.setFilter(s == null ? "" : s.toString());
+                updateEmptyState();
             }
 
-            discoveredSet.clear();
-            discoveredList.clear();
-            adapter.setDevices(discoveredList);
-            loadBondedDevices();
-            startDiscovery();
+            @Override
+            public void afterTextChanged(Editable s) { }
         });
 
+        updateEmptyState();
+    }
+
+    private void refreshScan() {
+        if (!hasScanPermissions()) {
+            requestScanPermissions();
+            swipeRefresh.setRefreshing(false);
+            return;
+        }
+        discoveredMap.clear();
+        publishDevices();
+        loadBondedDevices();
+        startDiscovery();
+        swipeRefresh.setRefreshing(false);
+    }
+
+    private void requestDiscoverable() {
+        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        intent.putExtra(
+                BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION,
+                DISCOVERABLE_DURATION_SECONDS
+        );
+        try {
+            discoverableLauncher.launch(intent);
+        } catch (SecurityException securityException) {
+            Toast.makeText(this, R.string.bluetooth_permission_message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void publishDevices() {
+        List<BluetoothDeviceItem> snapshot = new ArrayList<>(discoveredMap.values());
+        adapter.setDevices(snapshot);
         updateEmptyState();
     }
 
@@ -220,7 +289,11 @@ public class DeviceListActivity extends AppCompatActivity {
 
     private void stopDiscovery() {
         if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering()) {
-            bluetoothAdapter.cancelDiscovery();
+            try {
+                bluetoothAdapter.cancelDiscovery();
+            } catch (SecurityException ignored) {
+                // best effort
+            }
         }
         showScanning(false);
     }
@@ -272,6 +345,14 @@ public class DeviceListActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isBonded(@NonNull BluetoothDevice device) {
+        try {
+            return device.getBondState() == BluetoothDevice.BOND_BONDED;
+        } catch (SecurityException e) {
+            return false;
+        }
+    }
+
     @NonNull
     private String getSafeDeviceName(@NonNull BluetoothDevice device) {
         String name;
@@ -287,27 +368,24 @@ public class DeviceListActivity extends AppCompatActivity {
             return getString(R.string.unknown_device_name);
         }
 
+        if (isBonded(device)) {
+            return name + " " + getString(R.string.paired_device_suffix);
+        }
         return name;
     }
 
     private void showScanning(boolean scanning) {
-        progressScanning.setVisibility(scanning ? View.VISIBLE : View.GONE);
+        scanningChip.setVisibility(scanning ? View.VISIBLE : View.GONE);
     }
 
     private void updateEmptyState() {
-        if (progressScanning.getVisibility() == View.VISIBLE) {
-            tvEmptyState.setText(R.string.scanning_devices);
+        boolean scanning = scanningChip.getVisibility() == View.VISIBLE;
+        boolean empty = adapter.getItemCount() == 0;
+        if (empty && !scanning) {
             tvEmptyState.setVisibility(View.VISIBLE);
-            return;
+        } else {
+            tvEmptyState.setVisibility(View.GONE);
         }
-
-        if (discoveredList.isEmpty()) {
-            tvEmptyState.setText(R.string.no_devices_found);
-            tvEmptyState.setVisibility(View.VISIBLE);
-            return;
-        }
-
-        tvEmptyState.setVisibility(View.GONE);
     }
 
     private boolean isLocationEnabled() {
@@ -335,18 +413,25 @@ public class DeviceListActivity extends AppCompatActivity {
                     continue;
                 }
 
-                String bondedName = getSafeDeviceName(bonded) + " " + getString(R.string.paired_device_suffix);
-                BluetoothDeviceItem item = new BluetoothDeviceItem(bondedName, bonded.getAddress());
-                discoveredSet.add(item);
+                String address = bonded.getAddress();
+                if (!discoveredMap.containsKey(address)) {
+                    String bondedName = getSafeDeviceName(bonded);
+                    discoveredMap.put(
+                            address,
+                            new BluetoothDeviceItem(
+                                    bondedName,
+                                    address,
+                                    true,
+                                    BluetoothDeviceItem.RSSI_UNKNOWN
+                            )
+                    );
+                }
             }
         } catch (SecurityException ignored) {
             // Permissions are checked before call; keep list stable if OEM still throws.
         }
 
-        discoveredList.clear();
-        discoveredList.addAll(discoveredSet);
-        adapter.setDevices(discoveredList);
-        updateEmptyState();
+        publishDevices();
     }
 
     private void showLocationRequiredDialog() {
@@ -362,4 +447,3 @@ public class DeviceListActivity extends AppCompatActivity {
                 .show();
     }
 }
-
