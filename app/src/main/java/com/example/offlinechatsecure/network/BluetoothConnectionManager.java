@@ -12,8 +12,6 @@ import androidx.annotation.Nullable;
 
 import android.util.Base64;
 
-import android.util.Base64;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;

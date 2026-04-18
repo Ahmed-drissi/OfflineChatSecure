@@ -26,7 +26,6 @@
             android:layout_gravity="center"
             android:contentDescription="@string/app_name"
             android:src="@drawable/ic_bluelink_logo"
-            android:tint="@color/app_on_primary"
             app:tint="@color/app_on_primary" />
 
     </FrameLayout>
@@ -95,7 +94,6 @@
             android:layout_marginEnd="8dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_shield_line"
-            android:tint="@color/app_on_surface_variant"
             app:tint="@color/app_on_surface_variant" />
 
         <TextView
@@ -158,7 +156,6 @@
             android:layout_gravity="center"
             android:contentDescription="@null"
             android:src="@drawable/ic_chevron_down"
-            android:tint="@color/app_on_surface_variant"
             app:tint="@color/app_on_surface_variant" />
 
     </com.google.android.material.card.MaterialCardView>
