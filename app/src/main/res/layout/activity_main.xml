@@ -6,11 +6,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/app_surface"
-    android:fitsSystemWindows="true"
-    android:paddingStart="28dp"
-    android:paddingEnd="28dp"
-    android:paddingTop="56dp"
-    android:paddingBottom="28dp"
+    android:fitsSystemWindows="false"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp"
     tools:context=".activities.MainActivity">
 
     <!-- Header: BLUELINK overline + Dashboard title + scan icon button -->
