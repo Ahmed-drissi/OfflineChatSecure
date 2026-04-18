@@ -11,7 +11,10 @@ import androidx.annotation.NonNull;
 import com.example.offlinechatsecure.models.ChatMessage;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 public class DBHelper extends SQLiteOpenHelper {
 
@@ -55,9 +58,10 @@ public class DBHelper extends SQLiteOpenHelper {
 
     public long insertMessage(@NonNull String peerAddress, @NonNull ChatMessage message) {
         SQLiteDatabase db = getWritableDatabase();
+        String normalizedAddress = normalizePeerAddress(peerAddress);
 
         ContentValues values = new ContentValues();
-        values.put(COLUMN_PEER_ADDRESS, peerAddress);
+        values.put(COLUMN_PEER_ADDRESS, normalizedAddress);
         values.put(COLUMN_MESSAGE_TEXT, message.getText());
         values.put(COLUMN_TIMESTAMP, message.getTimestamp());
         values.put(COLUMN_SENT_BY_ME, message.isSentByMe() ? 1 : 0);
@@ -67,7 +71,33 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @NonNull
     public List<ChatMessage> getMessagesForPeer(@NonNull String peerAddress) {
+        String normalized = normalizePeerAddress(peerAddress);
+        return queryMessagesForKeys(new String[]{normalized});
+    }
+
+    @NonNull
+    public List<ChatMessage> getMessagesForPeerWithLegacyKeys(
+            @NonNull String peerAddress,
+            @NonNull List<String> legacyKeys
+    ) {
+        Set<String> keys = new LinkedHashSet<>();
+        keys.add(normalizePeerAddress(peerAddress));
+        for (String key : legacyKeys) {
+            if (key != null && !key.trim().isEmpty()) {
+                keys.add(normalizePeerAddress(key));
+            }
+        }
+
+        return queryMessagesForKeys(keys.toArray(new String[0]));
+    }
+
+    @NonNull
+    private List<ChatMessage> queryMessagesForKeys(@NonNull String[] peerKeys) {
         List<ChatMessage> messages = new ArrayList<>();
+        if (peerKeys.length == 0) {
+            return messages;
+        }
+
         SQLiteDatabase db = getReadableDatabase();
 
         String[] columns = {
@@ -76,11 +106,19 @@ public class DBHelper extends SQLiteOpenHelper {
                 COLUMN_SENT_BY_ME
         };
 
+        StringBuilder selectionBuilder = new StringBuilder();
+        for (int i = 0; i < peerKeys.length; i++) {
+            if (i > 0) {
+                selectionBuilder.append(" OR ");
+            }
+            selectionBuilder.append(COLUMN_PEER_ADDRESS).append(" = ?");
+        }
+
         try (Cursor cursor = db.query(
                 TABLE_MESSAGES,
                 columns,
-                COLUMN_PEER_ADDRESS + " = ?",
-                new String[]{peerAddress},
+                selectionBuilder.toString(),
+                peerKeys,
                 null,
                 null,
                 COLUMN_TIMESTAMP + " ASC, " + COLUMN_ID + " ASC"
@@ -98,6 +136,11 @@ public class DBHelper extends SQLiteOpenHelper {
         }
 
         return messages;
+    }
+
+    @NonNull
+    private String normalizePeerAddress(@NonNull String peerAddress) {
+        return peerAddress.trim().toUpperCase(Locale.US);
     }
 }
 

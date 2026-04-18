@@ -4,33 +4,162 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_screen_gradient"
     tools:context=".activities.SplashActivity">
+
+    <FrameLayout
+        android:id="@+id/logoCard"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginBottom="26dp"
+        android:background="@drawable/bg_splash_logo"
+        android:elevation="2dp"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed">
+
+        <ImageView
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_bluelink_logo"
+            android:tint="@color/app_on_primary"
+            app:tint="@color/app_on_primary" />
+
+    </FrameLayout>
 
     <TextView
         android:id="@+id/tvSplashTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:text="@string/app_name"
-        android:textSize="26sp"
+        android:textAppearance="@style/TextAppearance.Material3.DisplayMedium"
+        android:textColor="@color/app_on_surface"
         android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/tvSplashSubtitle"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashTagline"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        app:layout_constraintTop_toBottomOf="@id/logoCard" />
+
+    <TextView
+        android:id="@+id/tvSplashTagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="22dp"
+        android:letterSpacing="0.14"
+        android:text="@string/splash_tagline"
+        android:textAllCaps="true"
+        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+        android:textColor="@color/app_primary"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashSubtitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSplashTitle" />
 
     <TextView
         android:id="@+id/tvSplashSubtitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginStart="34dp"
+        android:layout_marginEnd="34dp"
+        android:layout_marginBottom="30dp"
         android:gravity="center"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
+        android:lineSpacingMultiplier="1.5"
         android:text="@string/splash_auth_message"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="@color/app_on_surface_variant"
+        app:layout_constraintBottom_toTopOf="@id/splashStatusRow"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSplashTagline" />
+
+    <LinearLayout
+        android:id="@+id/splashStatusRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@id/progressScanning"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSplashSubtitle">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_shield_line"
+            android:tint="@color/app_on_surface_variant"
+            app:tint="@color/app_on_surface_variant" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/splash_permission_request"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="@color/app_on_surface_variant" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/progressScanning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="80dp"
+        android:gravity="center"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSplashTitle" />
+        app:layout_constraintTop_toBottomOf="@id/splashStatusRow">
+
+        <View
+            android:layout_width="24dp"
+            android:layout_height="8dp"
+            android:background="@drawable/bg_pager_active" />
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_pager_inactive" />
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_pager_inactive" />
+
+    </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginBottom="14dp"
+        app:cardBackgroundColor="#2B2F3746"
+        app:cardCornerRadius="22dp"
+        app:cardElevation="0dp"
+        app:strokeColor="#505A6A84"
+        app:strokeWidth="1dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_chevron_down"
+            android:tint="@color/app_on_surface_variant"
+            app:tint="@color/app_on_surface_variant" />
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

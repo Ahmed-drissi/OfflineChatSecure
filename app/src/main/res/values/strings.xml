@@ -1,8 +1,11 @@
 <resources>
-    <string name="app_name">OfflineChatSecure</string>
-    <string name="main_screen_title">Main Activity</string>
-    <string name="splash_auth_message">Authenticate with biometrics or your device PIN to unlock secure chat.</string>
-    <string name="biometric_title">Unlock OfflineChatSecure</string>
+    <string name="app_name">BlueLink</string>
+    <string name="main_screen_title">Dashboard</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="splash_tagline">Bluetooth Messenger</string>
+    <string name="splash_auth_message">Secure peer-to-peer messaging over Bluetooth - no internet needed</string>
+    <string name="splash_permission_request">Requesting Bluetooth permission...</string>
+    <string name="biometric_title">Unlock BlueLink</string>
     <string name="biometric_subtitle">Use biometrics or choose PIN/password</string>
     <string name="biometric_negative_button">Use PIN</string>
     <string name="biometric_failed">Authentication failed. Try again.</string>
@@ -23,8 +26,8 @@
     <string name="bluetooth_permission_message">Bluetooth permissions are required to discover and connect with nearby devices.</string>
     <string name="bluetooth_enable_title">Enable Bluetooth</string>
     <string name="bluetooth_enable_message">Please enable Bluetooth to use offline secure chat.</string>
-    <string name="open_device_list">Discover Devices</string>
-    <string name="device_list_title">Nearby Bluetooth Devices</string>
+    <string name="open_device_list">Discover</string>
+    <string name="device_list_title">Nearby Devices</string>
     <string name="scan_again">Scan</string>
     <string name="no_devices_found">No devices found. Tap Scan to try again.</string>
     <string name="scanning_devices">Scanning for nearby devices...</string>
@@ -33,9 +36,9 @@
     <string name="location_required_title">Location service required</string>
     <string name="location_required_message">Turn on Location to discover nearby Bluetooth devices on this Android version.</string>
     <string name="unknown_device_name">Unknown device</string>
-    <string name="selected_device_label">Selected device: %1$s (%2$s)</string>
-    <string name="no_device_selected">No device selected yet.</string>
-    <string name="connect_selected_device">Connect Selected Device</string>
+    <string name="selected_device_label">%1$s - %2$s</string>
+    <string name="no_device_selected">Pixel 7 Pro - AA:BB:CC:DD</string>
+    <string name="connect_selected_device">Connect</string>
     <string name="select_device_first">Select a device first.</string>
     <string name="connection_unavailable">Connection manager is not available.</string>
     <string name="connection_in_progress">Connection is already in progress.</string>
@@ -49,13 +52,22 @@
     <string name="connection_state_label">Connection: %1$s</string>
     <string name="connection_state_with_detail">Connection: %1$s | %2$s</string>
     <string name="open_chat">Open Chat</string>
+    <string name="open_chat_with_unread">Open Chat (%1$d)</string>
     <string name="chat_send">Send message</string>
-    <string name="chat_input_hint">Type a message...</string>
+    <string name="chat_input_hint">Message...</string>
     <string name="chat_unknown_peer">Unknown peer</string>
-    <string name="chat_title_with_device">Chat with %1$s (%2$s)</string>
+    <string name="chat_title_with_device">%1$s</string>
     <string name="chat_preview_message_left">Connection established. You can now chat.</string>
     <string name="chat_preview_message_right">Great, chat UI is ready.</string>
     <string name="connect_before_chat">Connect to a device before opening chat.</string>
     <string name="chat_connection_unavailable">No active Bluetooth connection.</string>
     <string name="chat_send_failed">Failed to send message. Try reconnecting.</string>
+    <string name="chat_disconnected_title">Peer disconnected</string>
+    <string name="chat_disconnected_message">The other device disconnected. Messaging is now locked.</string>
+    <string name="chat_disconnected_message_with_detail">The other device disconnected. Messaging is now locked. %1$s</string>
+    <string name="notification_channel_name">Incoming messages</string>
+    <string name="notification_channel_description">Notifications for new offline chat messages.</string>
+    <string name="notification_new_message_title">New message from %1$s</string>
+    <string name="notification_connection_title">Connection request from %1$s</string>
+    <string name="notification_connection_text">Tap to open chat and continue.</string>
 </resources>

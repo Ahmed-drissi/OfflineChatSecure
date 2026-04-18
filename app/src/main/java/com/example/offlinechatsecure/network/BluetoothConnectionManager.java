@@ -39,6 +39,10 @@ public class BluetoothConnectionManager {
         void onMessageReceived(@NonNull String message);
     }
 
+    public interface ExternalMessageListener {
+        void onExternalMessageReceived(@NonNull String message);
+    }
+
     private static final String SERVICE_NAME = "OfflineChatSecureRfcomm";
     public static final UUID CHAT_SERVICE_UUID = UUID.fromString("7d90d8df-aa4d-4f8a-8a1f-e7fb72b1e868");
 
@@ -53,8 +57,12 @@ public class BluetoothConnectionManager {
     private BluetoothSocket connectedSocket;
     private ConnectionState currentState = ConnectionState.IDLE;
     private MessageListener messageListener;
+    private ConnectionListener externalConnectionListener;
+    private ExternalMessageListener externalMessageListener;
     private final AtomicLong connectAttemptCounter = new AtomicLong(0L);
     private long activeConnectAttemptId = 0L;
+    private String connectedDeviceAddress;
+    private String connectedDeviceName;
 
     public BluetoothConnectionManager(
             @NonNull BluetoothAdapter bluetoothAdapter,
@@ -93,6 +101,8 @@ public class BluetoothConnectionManager {
     public synchronized void disconnect() {
         closeConnectedThread();
         closeConnectedSocket();
+        connectedDeviceAddress = null;
+        connectedDeviceName = null;
         notifyState(ConnectionState.DISCONNECTED, "Connection closed");
         if (!isAccepting()) {
             startAccepting();
@@ -105,11 +115,21 @@ public class BluetoothConnectionManager {
         closeAcceptThread();
         closeConnectedThread();
         closeConnectedSocket();
+        connectedDeviceAddress = null;
+        connectedDeviceName = null;
         notifyState(ConnectionState.IDLE, "Connection manager released");
     }
 
     public synchronized void setMessageListener(@Nullable MessageListener listener) {
         this.messageListener = listener;
+    }
+
+    public synchronized void setExternalMessageListener(@Nullable ExternalMessageListener listener) {
+        this.externalMessageListener = listener;
+    }
+
+    public synchronized void setExternalConnectionListener(@Nullable ConnectionListener listener) {
+        this.externalConnectionListener = listener;
     }
 
     public synchronized boolean sendMessage(@NonNull String message) {
@@ -126,6 +146,16 @@ public class BluetoothConnectionManager {
 
     public synchronized boolean isConnected() {
         return connectedSocket != null && connectedSocket.isConnected();
+    }
+
+    @Nullable
+    public synchronized String getConnectedDeviceAddress() {
+        return connectedDeviceAddress;
+    }
+
+    @Nullable
+    public synchronized String getConnectedDeviceName() {
+        return connectedDeviceName;
     }
 
     private synchronized void onConnected(@NonNull BluetoothSocket socket) {
@@ -156,6 +186,8 @@ public class BluetoothConnectionManager {
         thread.start();
 
         BluetoothDevice remote = socket.getRemoteDevice();
+        connectedDeviceAddress = remote.getAddress();
+        connectedDeviceName = safeName(remote);
         notifyState(ConnectionState.CONNECTED, "Connected: " + safeName(remote));
     }
 
@@ -179,6 +211,8 @@ public class BluetoothConnectionManager {
         closeConnectThread();
         closeConnectedThread();
         closeConnectedSocket();
+        connectedDeviceAddress = null;
+        connectedDeviceName = null;
         notifyState(ConnectionState.FAILED, detail == null ? "Connection failed" : detail);
         if (!isAccepting()) {
             startAccepting();
@@ -197,6 +231,8 @@ public class BluetoothConnectionManager {
         closeConnectThread();
         closeConnectedThread();
         closeConnectedSocket();
+        connectedDeviceAddress = null;
+        connectedDeviceName = null;
         notifyState(ConnectionState.DISCONNECTED, detail == null ? "Connection lost" : detail);
         if (!isAccepting()) {
             startAccepting();
@@ -205,15 +241,20 @@ public class BluetoothConnectionManager {
 
     private void onIncomingMessage(@NonNull String message) {
         MessageListener listenerSnapshot;
+        ExternalMessageListener externalListenerSnapshot;
         synchronized (this) {
             listenerSnapshot = messageListener;
+            externalListenerSnapshot = externalMessageListener;
         }
 
-        if (listenerSnapshot == null) {
-            return;
-        }
-
-        mainHandler.post(() -> listenerSnapshot.onMessageReceived(message));
+        mainHandler.post(() -> {
+            if (listenerSnapshot != null) {
+                listenerSnapshot.onMessageReceived(message);
+            }
+            if (externalListenerSnapshot != null) {
+                externalListenerSnapshot.onExternalMessageReceived(message);
+            }
+        });
     }
 
     private synchronized void closeAcceptThread() {
@@ -278,7 +319,17 @@ public class BluetoothConnectionManager {
 
     private void notifyState(@NonNull ConnectionState state, @Nullable String detail) {
         currentState = state;
-        mainHandler.post(() -> listener.onStateChanged(state, detail));
+        ConnectionListener externalListenerSnapshot;
+        synchronized (this) {
+            externalListenerSnapshot = externalConnectionListener;
+        }
+
+        mainHandler.post(() -> {
+            listener.onStateChanged(state, detail);
+            if (externalListenerSnapshot != null) {
+                externalListenerSnapshot.onStateChanged(state, detail);
+            }
+        });
     }
 
     @NonNull

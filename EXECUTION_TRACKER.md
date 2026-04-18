@@ -131,10 +131,10 @@ Send and receive messages
 Store chat history
 
 ## 📌 Tasks
-- [ ] Create DBHelper
-- [ ] Create messages table
-- [ ] Save messages
-- [ ] Load messages in ChatActivity
+- [x] Create DBHelper
+- [x] Create messages table
+- [x] Save messages
+- [x] Load messages in ChatActivity
 
 ---
 
@@ -144,9 +144,9 @@ Store chat history
 Notify user on new message
 
 ## 📌 Tasks
-- [ ] Create notification channel
-- [ ] Show notification on receive
-- [ ] Handle background state
+- [x] Create notification channel
+- [x] Show notification on receive
+- [x] Handle background state
 
 ---
 
@@ -156,10 +156,10 @@ Notify user on new message
 Enhance user experience
 
 ## 📌 Tasks
-- [ ] Add dark mode
-- [ ] Improve chat bubbles
-- [ ] Add animations
-- [ ] Polish layouts
+- [x] Add dark mode
+- [x] Improve chat bubbles
+- [x] Add animations
+- [x] Polish layouts
 
 ---
 
@@ -212,9 +212,9 @@ Prepare final project
 | 5 | ✅ DONE |
 | 6 | ✅ DONE |
 | 7 | ✅ DONE |
-| 8 | ⬜ |
-| 9 | ⬜ |
-| 10 | ⬜ |
+| 8 | ✅ DONE |
+| 9 | ✅ DONE |
+| 10 | ✅ DONE |
 | 11 | ⬜ |
 | 12 | ⬜ |
 | 13 | ⬜ |

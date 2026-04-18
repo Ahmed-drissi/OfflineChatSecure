@@ -24,9 +24,13 @@ import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
 import com.example.offlinechatsecure.R;
+import com.example.offlinechatsecure.database.DBHelper;
+import com.example.offlinechatsecure.models.ChatMessage;
 import com.example.offlinechatsecure.network.BluetoothConnectionManager;
 import com.example.offlinechatsecure.network.BluetoothSession;
+import com.example.offlinechatsecure.utils.AppAuthState;
 import com.example.offlinechatsecure.utils.BiometricHelper;
+import com.example.offlinechatsecure.utils.MessageNotificationHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<String[]> bluetoothPermissionLauncher;
     private ActivityResultLauncher<Intent> enableBluetoothLauncher;
     private ActivityResultLauncher<Intent> deviceListLauncher;
+    private ActivityResultLauncher<String> notificationPermissionLauncher;
     private boolean skipReAuthOnFirstResume;
     private boolean shouldRequireReAuth;
     private boolean isReAuthInProgress;
@@ -52,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     private String selectedDeviceName;
     private boolean isConnectionEstablished;
     private boolean isConnectionInProgress;
+    private DBHelper dbHelper;
+    private int unreadMessagesCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,10 +77,22 @@ public class MainActivity extends AppCompatActivity {
         updateConnectButtonState();
         updateOpenChatButtonState();
 
+        MessageNotificationHelper.createMessageChannel(this);
+
+        notificationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    // No-op: app gracefully skips notifications if permission remains denied.
+                }
+        );
+        requestNotificationPermissionIfNeeded();
+
         biometricHelper = new BiometricHelper(this);
+        dbHelper = new DBHelper(this);
         BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager != null ? bluetoothManager.getAdapter() : null;
         skipReAuthOnFirstResume = getIntent().getBooleanExtra(EXTRA_SKIP_REAUTH_ON_LAUNCH, false);
+        shouldRequireReAuth = AppAuthState.isReauthRequired();
 
         if (bluetoothAdapter != null) {
             connectionManager = new BluetoothConnectionManager(
@@ -81,11 +100,61 @@ public class MainActivity extends AppCompatActivity {
                     (state, detail) -> runOnUiThread(() -> {
                         isConnectionEstablished = state == BluetoothConnectionManager.ConnectionState.CONNECTED;
                         isConnectionInProgress = state == BluetoothConnectionManager.ConnectionState.CONNECTING;
+
+                        if (state == BluetoothConnectionManager.ConnectionState.CONNECTED
+                                && !AppAuthState.isAppInForeground()) {
+                            String senderName = connectionManager.getConnectedDeviceName();
+                            if (senderName == null || senderName.trim().isEmpty()) {
+                                senderName = getString(R.string.chat_unknown_peer);
+                            }
+
+                            String senderAddress = connectionManager.getConnectedDeviceAddress();
+                            if (senderAddress == null || senderAddress.trim().isEmpty()) {
+                                senderAddress = senderName;
+                            }
+
+                            MessageNotificationHelper.showIncomingConnectionNotification(
+                                    getApplicationContext(),
+                                    senderName,
+                                    senderAddress
+                            );
+                        }
+
                         updateConnectionStateUi(state, detail);
                         updateConnectButtonState();
                         updateOpenChatButtonState();
                     })
             );
+
+            connectionManager.setExternalMessageListener(message -> {
+                // ChatActivity handles message rendering/saving while it is visible.
+                if (AppAuthState.isChatScreenActive()) {
+                    return;
+                }
+
+                String senderName = connectionManager.getConnectedDeviceName();
+                if (senderName == null || senderName.trim().isEmpty()) {
+                    senderName = getString(R.string.chat_unknown_peer);
+                }
+
+                String senderAddress = connectionManager.getConnectedDeviceAddress();
+                if (senderAddress == null || senderAddress.trim().isEmpty()) {
+                    senderAddress = senderName;
+                }
+
+                ChatMessage incoming = new ChatMessage(message, System.currentTimeMillis(), false);
+                dbHelper.insertMessage(senderAddress, incoming);
+
+                unreadMessagesCount++;
+                runOnUiThread(this::updateOpenChatButtonState);
+
+                MessageNotificationHelper.showIncomingMessageNotification(
+                        getApplicationContext(),
+                        senderName,
+                        senderAddress,
+                        message
+                );
+            });
             BluetoothSession.setConnectionManager(connectionManager);
         }
 
@@ -95,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
                     isReAuthInProgress = false;
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         shouldRequireReAuth = false;
+                        AppAuthState.setReauthRequired(false);
                         ensureBluetoothReady();
                         updateConnectButtonState();
                     } else {
@@ -160,8 +230,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        shouldRequireReAuth = AppAuthState.isReauthRequired();
+
         if (skipReAuthOnFirstResume) {
             skipReAuthOnFirstResume = false;
+            shouldRequireReAuth = false;
+            AppAuthState.setReauthRequired(false);
             ensureBluetoothReady();
             return;
         }
@@ -175,21 +249,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        if (!isChangingConfigurations()) {
-            shouldRequireReAuth = true;
-            updateConnectButtonState();
-        }
-    }
-
-    @Override
     protected void onDestroy() {
+        if (dbHelper != null) {
+            dbHelper.close();
+            dbHelper = null;
+        }
         if (isFinishing() && connectionManager != null) {
+            connectionManager.setExternalMessageListener(null);
             connectionManager.release();
             BluetoothSession.clear();
         }
         super.onDestroy();
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
     }
 
     private void requestReAuthentication() {
@@ -208,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onSuccess() {
                         isReAuthInProgress = false;
                         shouldRequireReAuth = false;
+                        AppAuthState.setReauthRequired(false);
                         ensureBluetoothReady();
                         updateConnectButtonState();
                     }
@@ -457,6 +541,12 @@ public class MainActivity extends AppCompatActivity {
         boolean canOpenChat = isConnectionEstablished && !shouldRequireReAuth && !isReAuthInProgress;
         btnOpenChat.setEnabled(canOpenChat);
         btnOpenChat.setAlpha(canOpenChat ? 1.0f : 0.6f);
+
+        if (unreadMessagesCount > 0) {
+            btnOpenChat.setText(getString(R.string.open_chat_with_unread, unreadMessagesCount));
+        } else {
+            btnOpenChat.setText(R.string.open_chat);
+        }
     }
 
     private void openChatScreen() {
@@ -465,9 +555,24 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        String remoteAddress = connectionManager != null
+                ? connectionManager.getConnectedDeviceAddress()
+                : selectedDeviceAddress;
+        String remoteName = connectionManager != null
+                ? connectionManager.getConnectedDeviceName()
+                : selectedDeviceName;
+
+        if (remoteAddress == null || remoteAddress.trim().isEmpty()) {
+            Toast.makeText(this, R.string.chat_connection_unavailable, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        unreadMessagesCount = 0;
+        updateOpenChatButtonState();
+
         Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA_REMOTE_NAME, selectedDeviceName);
-        intent.putExtra(ChatActivity.EXTRA_REMOTE_ADDRESS, selectedDeviceAddress);
+        intent.putExtra(ChatActivity.EXTRA_REMOTE_NAME, remoteName);
+        intent.putExtra(ChatActivity.EXTRA_REMOTE_ADDRESS, remoteAddress);
         startActivity(intent);
     }
 

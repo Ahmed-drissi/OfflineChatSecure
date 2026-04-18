@@ -22,10 +22,12 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private static final int VIEW_TYPE_RIGHT = 1;
 
     private final List<ChatMessage> items = new ArrayList<>();
+    private int lastAnimatedPosition = -1;
 
     public void submitMessages(@NonNull List<ChatMessage> messages) {
         items.clear();
         items.addAll(messages);
+        lastAnimatedPosition = messages.size() - 1;
         notifyDataSetChanged();
     }
 
@@ -61,6 +63,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         String time = DateFormat.getTimeInstance(DateFormat.SHORT)
                 .format(new Date(message.getTimestamp()));
         messageHolder.tvTime.setText(time);
+
+        if (position > lastAnimatedPosition) {
+            holder.itemView.setAlpha(0f);
+            holder.itemView.setTranslationY(22f);
+            holder.itemView.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(220L)
+                    .start();
+            lastAnimatedPosition = position;
+        }
     }
 
     @Override

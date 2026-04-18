@@ -15,7 +15,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.offlinechatsecure.R;
-import com.example.offlinechatsecure.activities.MainActivity;
+import com.example.offlinechatsecure.activities.ChatActivity;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,14 +48,23 @@ public final class MessageNotificationHelper {
     public static void showIncomingMessageNotification(
             @NonNull Context context,
             @NonNull String senderName,
+            @NonNull String senderAddress,
             @NonNull String message
     ) {
         if (!hasNotificationPermission(context)) {
             return;
         }
 
-        Intent openIntent = new Intent(context, MainActivity.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        Intent openIntent = new Intent(context, ChatActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        openIntent.putExtra(ChatActivity.EXTRA_REMOTE_NAME, senderName);
+        openIntent.putExtra(ChatActivity.EXTRA_REMOTE_ADDRESS, senderAddress);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
@@ -73,8 +82,55 @@ public final class MessageNotificationHelper {
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
 
-        NotificationManagerCompat.from(context)
-                .notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
+        try {
+            NotificationManagerCompat.from(context)
+                    .notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
+        } catch (SecurityException ignored) {
+            // Permission may be revoked while posting; fail gracefully.
+        }
+    }
+
+    public static void showIncomingConnectionNotification(
+            @NonNull Context context,
+            @NonNull String senderName,
+            @NonNull String senderAddress
+    ) {
+        if (!hasNotificationPermission(context)) {
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        Intent openIntent = new Intent(context, ChatActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        openIntent.putExtra(ChatActivity.EXTRA_REMOTE_NAME, senderName);
+        openIntent.putExtra(ChatActivity.EXTRA_REMOTE_ADDRESS, senderAddress);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                1,
+                openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_MESSAGES)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(context.getString(R.string.notification_connection_title, senderName))
+                .setContentText(context.getString(R.string.notification_connection_text))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+
+        try {
+            NotificationManagerCompat.from(context)
+                    .notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
+        } catch (SecurityException ignored) {
+            // Permission may be revoked while posting; fail gracefully.
+        }
     }
 
     private static boolean hasNotificationPermission(@NonNull Context context) {

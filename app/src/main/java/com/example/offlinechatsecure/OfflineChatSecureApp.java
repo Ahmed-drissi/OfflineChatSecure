@@ -21,7 +21,13 @@ public class OfflineChatSecureApp extends Application implements DefaultLifecycl
     }
 
     @Override
+    public void onStart(@NonNull LifecycleOwner owner) {
+        AppAuthState.setAppInForeground(true);
+    }
+
+    @Override
     public void onStop(@NonNull LifecycleOwner owner) {
+        AppAuthState.setAppInForeground(false);
         AppAuthState.setReauthRequired(true);
     }
 }
