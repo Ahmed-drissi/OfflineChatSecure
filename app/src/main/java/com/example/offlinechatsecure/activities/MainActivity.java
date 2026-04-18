@@ -69,8 +69,16 @@ public class MainActivity extends AppCompatActivity {
         tvConnectionState = findViewById(R.id.tvConnectionState);
         btnConnectSelected = findViewById(R.id.btnConnectSelected);
         btnOpenChat = findViewById(R.id.btnOpenChat);
-        Button btnDiscoverDevices = findViewById(R.id.btnDiscoverDevices);
+        android.view.View btnDiscoverDevices = findViewById(R.id.btnDiscoverDevices);
+        android.widget.ImageButton btnHeaderScan = findViewById(R.id.btnHeaderScan);
+        android.view.View btnOpenHistory = findViewById(R.id.btnOpenHistory);
         btnDiscoverDevices.setOnClickListener(v -> openDeviceList());
+        if (btnHeaderScan != null) {
+            btnHeaderScan.setOnClickListener(v -> openDeviceList());
+        }
+        if (btnOpenHistory != null) {
+            btnOpenHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
+        }
         btnConnectSelected.setOnClickListener(v -> connectToSelectedDevice());
         btnOpenChat.setOnClickListener(v -> openChatScreen());
         updateConnectionStateUi(BluetoothConnectionManager.ConnectionState.IDLE, getString(R.string.connection_state_idle));

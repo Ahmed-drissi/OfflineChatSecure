@@ -4,184 +4,127 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_screen_gradient"
+    android:background="@color/app_surface"
+    android:padding="16dp"
     tools:context=".activities.DeviceListActivity">
 
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="44dp"
-        android:layout_marginEnd="10dp"
         android:text="@string/device_list_title"
-        android:textAppearance="@style/TextAppearance.Material3.DisplaySmall"
-        android:textColor="@color/app_on_surface"
+        android:textColor="@color/app_on_surface_strong"
+        android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@id/btnScanAgain"
+        app:layout_constraintEnd_toStartOf="@+id/btnScanAgain"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.button.MaterialButton
+    <ImageButton
         android:id="@+id/btnScanAgain"
-        style="@style/Widget.Material3.Button.IconButton"
-        android:layout_width="46dp"
-        android:layout_height="46dp"
-        android:layout_marginEnd="24dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:background="@drawable/bg_icon_tile"
         android:contentDescription="@string/scan_again"
-        app:icon="@drawable/ic_refresh_line"
-        app:iconSize="20dp"
-        app:iconTint="@color/app_on_surface_variant"
+        android:src="@drawable/ic_refresh_line"
+        android:tint="@color/app_on_surface"
+        app:tint="@color/app_on_surface"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/tvTitle" />
+        app:layout_constraintTop_toTopOf="@id/tvTitle"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilSearch"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+    <!-- Filter pill -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/filterPill"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="24dp"
-        app:boxBackgroundColor="#35384249"
-        app:boxStrokeColor="@color/card_stroke"
-        app:boxStrokeWidth="1dp"
-        app:boxStrokeWidthFocused="1dp"
-        app:boxCornerRadiusBottomEnd="12dp"
-        app:boxCornerRadiusBottomStart="12dp"
-        app:boxCornerRadiusTopEnd="12dp"
-        app:boxCornerRadiusTopStart="12dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="14dp"
+        app:cardBackgroundColor="@color/card_background"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/card_stroke"
+        app:strokeWidth="1dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
-        app:startIconDrawable="@drawable/ic_search_line"
-        app:startIconTint="@color/app_on_surface_variant">
+        app:layout_constraintTop_toBottomOf="@id/tvTitle">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etSearch"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Filter devices"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:textColor="@color/app_on_surface"
-            android:textColorHint="@color/app_on_surface_variant" />
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_search_line"
+                android:tint="@color/app_on_surface_variant"
+                app:tint="@color/app_on_surface_variant" />
 
+            <EditText
+                android:id="@+id/etDeviceFilter"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="@string/device_filter_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="@color/app_on_surface"
+                android:textColorHint="@color/app_on_surface_variant"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Scanning chip -->
     <LinearLayout
-        android:id="@+id/scanStatusRow"
+        android:id="@+id/scanningChip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
         android:layout_marginTop="12dp"
-        android:gravity="center_vertical"
-        android:minHeight="28dp"
-        android:orientation="horizontal"
-        android:paddingStart="10dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="10dp"
-        android:paddingBottom="4dp"
         android:background="@drawable/bg_chip_scan"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tilSearch">
+        app:layout_constraintTop_toBottomOf="@id/filterPill">
 
-        <com.google.android.material.progressindicator.CircularProgressIndicator
+        <ProgressBar
             android:id="@+id/progressScanning"
-            android:layout_width="11dp"
-            android:layout_height="11dp"
-            android:indeterminate="true"
-            app:indicatorColor="@color/app_primary"
-            app:indicatorSize="11dp"
-            app:indicatorInset="0dp"
-            app:trackThickness="2dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="Scanning for devices"
-            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-            android:textColor="@color/app_primary" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutEmptyState"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:gravity="center"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanStatusRow"
-        app:layout_constraintVertical_bias="0.45"
-        tools:visibility="visible">
-
-        <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_marginBottom="16dp"
-            android:alpha="0.4"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_phone_line"
-            android:tint="@color/app_on_surface_variant"
-            app:tint="@color/app_on_surface_variant" />
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:indeterminateTint="@color/app_primary" />
 
         <TextView
             android:id="@+id/tvEmptyState"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="@string/no_devices_found"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-            android:textColor="@color/app_on_surface_variant" />
-
+            android:layout_marginStart="8dp"
+            android:text="@string/scanning_devices"
+            android:textColor="@color/app_primary"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvDevices"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="18dp"
-        android:layout_marginTop="14dp"
-        android:layout_marginEnd="18dp"
-        android:layout_marginBottom="80dp"
+        android:layout_marginTop="12dp"
         android:clipToPadding="false"
-        android:paddingBottom="8dp"
+        android:paddingBottom="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanStatusRow"
+        app:layout_constraintTop_toBottomOf="@id/scanningChip"
         tools:listitem="@layout/item_device" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginBottom="14dp"
-        app:cardBackgroundColor="#2B2F3746"
-        app:cardCornerRadius="22dp"
-        app:cardElevation="0dp"
-        app:strokeColor="#505A6A84"
-        app:strokeWidth="1dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_gravity="center"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_chevron_down"
-            android:tint="@color/app_on_surface_variant"
-            app:tint="@color/app_on_surface_variant" />
-
-    </com.google.android.material.card.MaterialCardView>
-
 </androidx.constraintlayout.widget.ConstraintLayout>
-

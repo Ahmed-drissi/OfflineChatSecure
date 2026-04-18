@@ -87,8 +87,47 @@ public class DBHelper extends SQLiteOpenHelper {
                 keys.add(normalizePeerAddress(key));
             }
         }
-
         return queryMessagesForKeys(keys.toArray(new String[0]));
+    }
+
+    @NonNull
+    public List<com.example.offlinechatsecure.models.ConversationSummary> getConversations() {
+        List<com.example.offlinechatsecure.models.ConversationSummary> result = new ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase();
+
+        String sql = "SELECT m." + COLUMN_PEER_ADDRESS
+                + ", m." + COLUMN_MESSAGE_TEXT
+                + ", m." + COLUMN_TIMESTAMP
+                + ", g.cnt"
+                + " FROM " + TABLE_MESSAGES + " m"
+                + " JOIN ("
+                + "   SELECT " + COLUMN_PEER_ADDRESS
+                + ", MAX(" + COLUMN_TIMESTAMP + ") AS max_ts"
+                + ", COUNT(*) AS cnt"
+                + "   FROM " + TABLE_MESSAGES
+                + "   GROUP BY " + COLUMN_PEER_ADDRESS
+                + " ) g ON m." + COLUMN_PEER_ADDRESS + " = g." + COLUMN_PEER_ADDRESS
+                + " AND m." + COLUMN_TIMESTAMP + " = g.max_ts"
+                + " GROUP BY m." + COLUMN_PEER_ADDRESS
+                + " ORDER BY m." + COLUMN_TIMESTAMP + " DESC";
+
+        try (Cursor cursor = db.rawQuery(sql, null)) {
+            int peerIdx = cursor.getColumnIndexOrThrow(COLUMN_PEER_ADDRESS);
+            int textIdx = cursor.getColumnIndexOrThrow(COLUMN_MESSAGE_TEXT);
+            int tsIdx = cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP);
+            int cntIdx = cursor.getColumnIndexOrThrow("cnt");
+
+            while (cursor.moveToNext()) {
+                result.add(new com.example.offlinechatsecure.models.ConversationSummary(
+                        cursor.getString(peerIdx),
+                        cursor.getString(textIdx),
+                        cursor.getLong(tsIdx),
+                        cursor.getInt(cntIdx)
+                ));
+            }
+        }
+
+        return result;
     }
 
     @NonNull

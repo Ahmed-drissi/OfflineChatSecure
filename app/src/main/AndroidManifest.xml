@@ -11,7 +11,6 @@
         tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" tools:targetApi="s" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:targetApi="tiramisu" />
 
     <application
         android:name=".OfflineChatSecureApp"
@@ -25,7 +24,9 @@
         android:theme="@style/Theme.OfflineChatSecure">
         <activity
             android:name=".activities.ChatActivity"
-            android:windowSoftInputMode="adjustPan|stateHidden"
+            android:exported="false" />
+        <activity
+            android:name=".activities.HistoryActivity"
             android:exported="false" />
         <activity
             android:name=".activities.DeviceListActivity"

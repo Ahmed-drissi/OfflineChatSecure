@@ -2,259 +2,229 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/chatRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_screen_gradient"
-    android:fitsSystemWindows="true"
+    android:background="@color/chat_screen_background"
     tools:context=".activities.ChatActivity">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/chatHeader"
+    <!-- Header bar -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/headerCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#55131B2D"
-        android:paddingStart="14dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="14dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="12dp"
+        app:cardBackgroundColor="@color/card_background"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/card_stroke"
+        app:strokeWidth="1dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBack"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:contentDescription="@null"
-            app:icon="@drawable/ic_back_line"
-            app:iconSize="18dp"
-            app:iconTint="@color/app_on_surface_variant"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <FrameLayout
-            android:id="@+id/cardDeviceAvatar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_icon_tile"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/btnBack"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_gravity="center"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_phone_line"
-                android:tint="@color/app_primary"
-                app:tint="@color/app_primary" />
-
-        </FrameLayout>
-
-        <LinearLayout
-            android:id="@+id/chatHeaderInfo"
-            android:layout_width="0dp"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:orientation="vertical"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btnMoreOptions"
-            app:layout_constraintStart_toEndOf="@id/cardDeviceAvatar"
-            app:layout_constraintTop_toTopOf="parent">
+            android:padding="10dp">
 
-            <TextView
-                android:id="@+id/tvChatTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="@style/TextAppearance.Material3.DisplaySmall"
-                android:textColor="@color/app_on_surface"
-                tools:text="Galaxy S24" />
+            <ImageButton
+                android:id="@+id/btnChatBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/chat_back"
+                android:src="@drawable/ic_back_line"
+                android:tint="@color/app_on_surface"
+                app:tint="@color/app_on_surface"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardChatPeerIcon"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                app:cardBackgroundColor="#25334956"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/btnChatBack"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_phone_line"
+                    android:tint="@color/app_primary"
+                    app:tint="@color/app_primary" />
+
+            </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/chatPeerInfo"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <View
-                    android:id="@+id/viewConnectionDot"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_status_dot_active" />
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btnChatMore"
+                app:layout_constraintStart_toEndOf="@id/cardChatPeerIcon"
+                app:layout_constraintTop_toTopOf="parent">
 
                 <TextView
-                    android:id="@+id/tvConnectionState"
+                    android:id="@+id/tvChatTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/app_on_surface_strong"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Galaxy S24" />
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Connected - BT 5.0"
-                    android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                    android:textColor="@color/status_connected"
-                    tools:text="Connected - BT 5.0" />
+                    android:layout_marginTop="3dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/chatStatusDot"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:background="@drawable/bg_status_dot_active" />
+
+                    <TextView
+                        android:id="@+id/tvChatStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/status_connected"
+                        android:textSize="12sp"
+                        tools:text="Connected" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="·"
+                        android:textColor="@color/app_on_surface_variant" />
+
+                    <TextView
+                        android:id="@+id/tvChatSubStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/app_primary"
+                        android:textSize="12sp"
+                        tools:text="BT 5.0" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
-        </LinearLayout>
+            <ImageButton
+                android:id="@+id/btnChatMore"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_bottom_nav_circle"
+                android:contentDescription="@string/chat_more"
+                android:src="@drawable/ic_more_horizontal"
+                android:tint="@color/app_on_surface_variant"
+                app:tint="@color/app_on_surface_variant"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnMoreOptions"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_icon_tile"
-            android:contentDescription="@null"
-            app:icon="@drawable/ic_more_horizontal"
-            app:iconSize="18dp"
-            app:iconTint="@color/app_on_surface_variant"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <View
-        android:id="@+id/headerDivider"
-        android:layout_width="0dp"
-        android:layout_height="0.5dp"
-        android:background="@color/card_stroke"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/chatHeader" />
-
+    <!-- Day separator -->
     <TextView
-        android:id="@+id/tvDateLabel"
+        android:id="@+id/tvDaySeparator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
-        android:text="Today - 9:35 AM"
-        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
         android:textColor="@color/app_on_surface_variant"
+        android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerDivider" />
+        app:layout_constraintTop_toBottomOf="@id/headerCard"
+        tools:text="Today  ·  9:35 AM" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:clipToPadding="false"
-        android:paddingTop="6dp"
-        android:paddingBottom="10dp"
-        android:scrollbars="none"
-        app:layout_constraintBottom_toTopOf="@id/inputCard"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/inputContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvDateLabel"
+        app:layout_constraintTop_toBottomOf="@id/tvDaySeparator"
         tools:listitem="@layout/item_message_left" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/inputCard"
+    <!-- Input row: attach + pill + send FAB -->
+    <LinearLayout
+        android:id="@+id/inputContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginBottom="10dp"
-        app:cardBackgroundColor="#42222C3E"
-        app:cardCornerRadius="0dp"
-        app:cardElevation="0dp"
-        app:strokeColor="@color/card_stroke"
-        app:strokeWidth="1dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="14dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="8dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAttach"
-                style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_tile"
-                android:contentDescription="@null"
-                app:icon="@drawable/ic_attach_line"
-                app:iconSize="18dp"
-                app:iconTint="@color/app_on_surface_variant" />
-
-            <EditText
-                android:id="@+id/etInputMessage"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:layout_marginEnd="10dp"
-                android:background="@drawable/bg_input_pill"
-                android:hint="@string/chat_input_hint"
-                android:imeOptions="actionSend"
-                android:inputType="textCapSentences|textMultiLine"
-                android:maxLines="4"
-                android:minHeight="40dp"
-                android:paddingStart="14dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="8dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                android:textColor="@color/app_on_surface"
-                android:textColorHint="@color/app_on_surface_variant" />
-
-            <ImageButton
-                android:id="@+id/btnSend"
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:background="@drawable/bg_primary_button"
-                android:backgroundTint="@color/app_primary"
-                android:contentDescription="@string/chat_send"
-                android:padding="14dp"
-                android:src="@drawable/ic_send_plane_line"
-                android:tint="@color/app_on_primary"
-                app:tint="@color/app_on_primary" />
-
-        </LinearLayout>
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginBottom="6dp"
-        app:cardBackgroundColor="#2B2F3746"
-        app:cardCornerRadius="22dp"
-        app:cardElevation="0dp"
-        app:strokeColor="#505A6A84"
-        app:strokeWidth="1dp"
-        app:layout_constraintBottom_toBottomOf="@id/inputCard"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_gravity="center"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_chevron_down"
+        <ImageButton
+            android:id="@+id/btnAttach"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_bottom_nav_circle"
+            android:contentDescription="@string/chat_attach"
+            android:src="@drawable/ic_attach_line"
             android:tint="@color/app_on_surface_variant"
             app:tint="@color/app_on_surface_variant" />
 
-    </com.google.android.material.card.MaterialCardView>
+        <EditText
+            android:id="@+id/etInputMessage"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chat_input_container"
+            android:hint="@string/chat_input_hint"
+            android:imeOptions="actionSend"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="4"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/app_on_surface"
+            android:textColorHint="@color/app_on_surface_variant"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/btnSend"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_send_fab"
+            android:contentDescription="@string/chat_send"
+            android:src="@drawable/ic_send_plane_line"
+            android:tint="@color/app_on_primary"
+            app:tint="@color/app_on_primary" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

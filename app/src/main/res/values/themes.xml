@@ -1,10 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Base.Theme.OfflineChatSecure" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- App always uses the dark BlueLink palette regardless of system theme. -->
+    <style name="Base.Theme.OfflineChatSecure" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/app_primary</item>
         <item name="colorOnPrimary">@color/app_on_primary</item>
         <item name="colorSurface">@color/app_surface</item>
         <item name="colorOnSurface">@color/app_on_surface</item>
-        <item name="android:windowBackground">@color/chat_screen_background</item>
+        <item name="colorSurfaceVariant">@color/card_background</item>
+        <item name="colorOnSurfaceVariant">@color/app_on_surface_variant</item>
+        <item name="android:windowBackground">@color/app_surface</item>
+        <item name="android:statusBarColor">@color/app_surface</item>
+        <item name="android:navigationBarColor">@color/app_surface</item>
     </style>
 
     <style name="Theme.OfflineChatSecure" parent="Base.Theme.OfflineChatSecure" />

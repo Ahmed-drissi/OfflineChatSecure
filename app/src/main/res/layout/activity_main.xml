@@ -5,341 +5,312 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_screen_gradient"
+    android:background="@color/app_surface"
+    android:padding="20dp"
     tools:context=".activities.MainActivity">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/mainScroll"
+    <!-- Header: BLUELINK overline + Dashboard title + scan icon button -->
+    <TextView
+        android:id="@+id/tvOverline"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:fillViewport="true"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="wrap_content"
+        android:letterSpacing="0.18"
+        android:text="@string/app_overline"
+        android:textAllCaps="true"
+        android:textColor="@color/app_primary"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@id/btnHeaderScan"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvMainTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="@string/main_screen_title"
+        android:textColor="@color/app_on_surface_strong"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/btnHeaderScan"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvOverline" />
+
+    <ImageButton
+        android:id="@+id/btnHeaderScan"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_icon_tile"
+        android:contentDescription="@string/open_device_list"
+        android:src="@drawable/ic_search_line"
+        android:tint="@color/app_on_surface"
+        app:tint="@color/app_on_surface"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tvOverline"
+        app:layout_constraintBottom_toBottomOf="@id/tvMainTitle" />
+
+    <!-- Status card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/statusCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:cardBackgroundColor="@color/card_background"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/card_stroke"
+        app:strokeWidth="1dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/tvMainTitle">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="22dp"
-            android:paddingTop="26dp"
-            android:paddingEnd="22dp"
-            android:paddingBottom="20dp">
+            android:padding="14dp">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="18dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <LinearLayout
-                    android:layout_width="0dp"
+                <View
+                    android:id="@+id/statusDot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:background="@drawable/bg_status_dot_active" />
+
+                <TextView
+                    android:id="@+id/tvConnectionState"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:letterSpacing="0.1"
-                        android:text="BLUELINK"
-                        android:textAllCaps="true"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                        android:textColor="@color/app_on_surface_variant" />
-
-                    <TextView
-                        android:id="@+id/tvMainTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/main_screen_title"
-                        android:textAppearance="@style/TextAppearance.Material3.DisplaySmall"
-                        android:textColor="@color/app_on_surface"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnSettings"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="@drawable/bg_icon_tile"
-                    android:contentDescription="@null"
-                    app:icon="@drawable/ic_settings_line"
-                    app:iconSize="20dp" />
+                    android:layout_marginStart="8dp"
+                    android:letterSpacing="0.1"
+                    android:textAllCaps="true"
+                    android:textColor="@color/app_on_surface_variant"
+                    android:textSize="12sp"
+                    tools:text="BLUETOOTH ACTIVE · LISTENING" />
 
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/statusCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
-                app:cardBackgroundColor="@color/card_background"
-                app:cardCornerRadius="16dp"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/chip_background"
+                app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/card_stroke"
+                app:strokeColor="@color/chip_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="18dp">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <View
-                            android:id="@+id/viewStatusDot"
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
-                            android:layout_marginEnd="10dp"
-                            android:background="@drawable/bg_status_dot_active" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:letterSpacing="0.05"
-                            android:text="BLUETOOTH ACTIVE - LISTENING"
-                            android:textAllCaps="true"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:textColor="@color/app_on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_input_pill"
-                        android:gravity="center_vertical"
-                        android:minHeight="42dp"
-                        android:orientation="horizontal"
-                        android:paddingStart="12dp"
-                        android:paddingTop="8dp"
-                        android:paddingEnd="12dp"
-                        android:paddingBottom="8dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_marginEnd="8dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_phone_line"
-                            android:tint="@color/app_primary"
-                            app:tint="@color/app_primary" />
-
-                        <TextView
-                            android:id="@+id/tvSelectedDevice"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/no_device_selected"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                            android:textColor="@color/app_on_surface" />
-
-                    </LinearLayout>
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_phone_line"
+                        android:tint="@color/app_primary"
+                        app:tint="@color/app_primary" />
 
                     <TextView
-                        android:id="@+id/tvConnectionState"
-                        android:layout_width="match_parent"
+                        android:id="@+id/tvSelectedDevice"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:gravity="center"
-                        android:text="Waiting for incoming connections..."
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                        android:textColor="@color/app_on_surface_variant"
-                        tools:text="Listening | Waiting for incoming connection" />
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/no_device_selected"
+                        android:textColor="@color/app_on_surface"
+                        android:textSize="13sp" />
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:letterSpacing="0.05"
-                android:text="@string/quick_actions"
-                android:textAllCaps="true"
-                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                android:textColor="@color/app_on_surface_variant" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/actionCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="0dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="14dp"
-                        android:orientation="horizontal"
-                        android:weightSum="2">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnDiscoverDevices"
-                            style="@style/Widget.Material3.Button"
-                            android:layout_width="0dp"
-                            android:layout_height="112dp"
-                            android:layout_marginEnd="6dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_card_dark"
-                            android:gravity="start|bottom"
-                            android:paddingStart="14dp"
-                            android:paddingTop="14dp"
-                            android:paddingEnd="14dp"
-                            android:paddingBottom="14dp"
-                            android:text="@string/open_device_list"
-                            android:textAllCaps="false"
-                            android:textColor="@color/app_on_surface"
-                            android:textSize="24sp"
-                            app:icon="@drawable/ic_search_line"
-                            app:iconGravity="top"
-                            app:iconPadding="12dp"
-                            app:iconSize="18dp"
-                            app:iconTint="@color/app_primary"
-                            app:rippleColor="@color/overlay_dark" />
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/btnHistory"
-                            android:layout_width="0dp"
-                            android:layout_height="112dp"
-                            android:layout_marginStart="6dp"
-                            android:layout_weight="1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            app:cardBackgroundColor="@color/card_background"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="0dp"
-                            app:strokeColor="@color/card_stroke"
-                            app:strokeWidth="1dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="14dp">
-
-                                <FrameLayout
-                                    android:layout_width="38dp"
-                                    android:layout_height="38dp"
-                                    android:layout_marginBottom="8dp"
-                                    android:background="@drawable/bg_icon_tile">
-
-                                    <ImageView
-                                        android:layout_width="18dp"
-                                        android:layout_height="18dp"
-                                        android:layout_gravity="center"
-                                        android:contentDescription="@null"
-                                        android:src="@drawable/ic_history_line"
-                                        android:tint="@color/app_primary_soft"
-                                        app:tint="@color/app_primary_soft" />
-
-                                </FrameLayout>
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="History"
-                                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                                    android:textColor="@color/app_on_surface" />
-
-                            </LinearLayout>
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                    </LinearLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnConnectSelected"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:textAllCaps="false"
-                        android:text="@string/connect_selected_device"
-                        android:textColor="@color/app_on_surface_variant"
-                        app:icon="@drawable/ic_refresh_line"
-                        app:iconGravity="textStart"
-                        app:iconPadding="6dp"
-                        app:iconSize="16dp"
-                        app:iconTint="@color/app_on_surface_variant" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnOpenChat"
-                        style="@style/Widget.Material3.Button"
-                        android:layout_width="match_parent"
-                        android:layout_height="74dp"
-                        android:background="@drawable/bg_primary_button"
-                        android:text="@string/open_chat"
-                        android:textAllCaps="false"
-                        android:textColor="@color/app_on_primary"
-                        android:textSize="16sp"
-                        app:icon="@drawable/ic_chat_line"
-                        app:iconGravity="textStart"
-                        app:iconPadding="10dp"
-                        app:iconTint="@color/app_on_primary"
-                        app:cornerRadius="14dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                android:id="@+id/tvMainHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="center"
-                android:text="Waiting for incoming connections..."
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="@color/app_on_surface_variant" />
 
         </LinearLayout>
-
-    </androidx.core.widget.NestedScrollView>
-
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginBottom="14dp"
-        app:cardBackgroundColor="#2B2F3746"
-        app:cardCornerRadius="22dp"
-        app:cardElevation="0dp"
-        app:strokeColor="#505A6A84"
-        app:strokeWidth="1dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_gravity="center"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_chevron_down"
-            android:tint="@color/app_on_surface_variant"
-            app:tint="@color/app_on_surface_variant" />
-
     </com.google.android.material.card.MaterialCardView>
+
+    <!-- Quick Actions label -->
+    <TextView
+        android:id="@+id/tvQuickActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:letterSpacing="0.16"
+        android:text="@string/quick_actions"
+        android:textAllCaps="true"
+        android:textColor="@color/app_on_surface_variant"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/statusCard" />
+
+    <!-- Quick Actions row: Discover + History -->
+    <LinearLayout
+        android:id="@+id/quickActionsRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvQuickActions">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnDiscoverDevices"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/card_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_icon_tile">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_search_line"
+                        android:tint="@color/app_primary"
+                        app:tint="@color/app_primary" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/quick_action_discover"
+                    android:textColor="@color/app_on_surface_strong"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnOpenHistory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/card_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_icon_tile">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_history_line"
+                        android:tint="@color/app_primary"
+                        app:tint="@color/app_primary" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/quick_action_history"
+                    android:textColor="@color/app_on_surface_strong"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+    <!-- Connect button (used when a device is selected but not yet connected) -->
+    <Button
+        android:id="@+id/btnConnectSelected"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:backgroundTint="@color/app_primary_strong"
+        android:text="@string/connect_selected_device"
+        android:textColor="@color/app_on_primary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/quickActionsRow" />
+
+    <!-- Open chat primary CTA -->
+    <Button
+        android:id="@+id/btnOpenChat"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_primary_button"
+        android:drawableStart="@drawable/ic_chat_line"
+        android:drawablePadding="12dp"
+        android:gravity="center"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:text="@string/open_chat"
+        android:textAllCaps="false"
+        android:textColor="@color/app_on_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnConnectSelected" />
+
+    <TextView
+        android:id="@+id/tvDashboardHint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:text="@string/dashboard_waiting_hint"
+        android:textColor="@color/app_on_surface_variant"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnOpenChat" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

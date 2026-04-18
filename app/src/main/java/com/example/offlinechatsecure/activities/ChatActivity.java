@@ -2,6 +2,7 @@ package com.example.offlinechatsecure.activities;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -29,6 +30,7 @@ public class ChatActivity extends AppCompatActivity {
 
     public static final String EXTRA_REMOTE_NAME = "extra_remote_name";
     public static final String EXTRA_REMOTE_ADDRESS = "extra_remote_address";
+    public static final String EXTRA_READ_ONLY = "extra_read_only";
 
     private final List<ChatMessage> chatMessages = new ArrayList<>();
     private MessageAdapter messageAdapter;
@@ -39,6 +41,7 @@ public class ChatActivity extends AppCompatActivity {
     private DBHelper dbHelper;
     private String peerAddress;
     private boolean disconnectAlertShown;
+    private boolean readOnlyMode;
     private final BluetoothConnectionManager.MessageListener incomingMessageListener =
             message -> runOnUiThread(() -> {
                 ChatMessage incoming = new ChatMessage(message, System.currentTimeMillis(), false);
@@ -67,12 +70,23 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
 
         TextView tvChatTitle = findViewById(R.id.tvChatTitle);
+        TextView tvChatStatus = findViewById(R.id.tvChatStatus);
+        TextView tvChatSubStatus = findViewById(R.id.tvChatSubStatus);
+        TextView tvDaySeparator = findViewById(R.id.tvDaySeparator);
+        View statusDot = findViewById(R.id.chatStatusDot);
+        ImageButton btnBack = findViewById(R.id.btnChatBack);
         rvMessages = findViewById(R.id.rvMessages);
         etInput = findViewById(R.id.etInputMessage);
         btnSend = findViewById(R.id.btnSend);
 
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
+        }
+
+        readOnlyMode = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
+
         connectionManager = BluetoothSession.getConnectionManager();
-        if (connectionManager == null || !connectionManager.isConnected()) {
+        if (!readOnlyMode && (connectionManager == null || !connectionManager.isConnected())) {
             Toast.makeText(this, R.string.chat_connection_unavailable, Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -90,6 +104,17 @@ public class ChatActivity extends AppCompatActivity {
         peerAddress = remoteAddress.trim().isEmpty() ? legacyPeerKey : remoteAddress;
 
         tvChatTitle.setText(getString(R.string.chat_title_with_device, remoteName, remoteAddress));
+        if (tvChatStatus != null) {
+            tvChatStatus.setText(readOnlyMode
+                    ? R.string.chat_status_archived
+                    : R.string.connection_state_connected);
+        }
+        if (tvChatSubStatus != null) {
+            tvChatSubStatus.setText(readOnlyMode ? R.string.chat_status_history : R.string.chat_status_bt);
+        }
+        if (tvDaySeparator != null) {
+            tvDaySeparator.setText(R.string.chat_day_today);
+        }
 
         messageAdapter = new MessageAdapter();
         rvMessages.setLayoutManager(new LinearLayoutManager(this));
@@ -118,14 +143,22 @@ public class ChatActivity extends AppCompatActivity {
         btnSend.setOnClickListener(v -> {
             sendCurrentInputMessage();
         });
-        setSendEnabled(connectionManager.isConnected());
+        if (readOnlyMode) {
+            setSendEnabled(false);
+            View inputContainer = findViewById(R.id.inputContainer);
+            if (inputContainer != null) {
+                inputContainer.setVisibility(View.GONE);
+            }
+        } else {
+            setSendEnabled(connectionManager.isConnected());
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         AppAuthState.setChatScreenActive(true);
-        if (connectionManager != null) {
+        if (!readOnlyMode && connectionManager != null) {
             connectionManager.setMessageListener(incomingMessageListener);
             connectionManager.setExternalConnectionListener(connectionStateListener);
             setSendEnabled(connectionManager.isConnected());
@@ -135,7 +168,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         AppAuthState.setChatScreenActive(false);
-        if (connectionManager != null) {
+        if (!readOnlyMode && connectionManager != null) {
             connectionManager.setMessageListener(null);
             connectionManager.setExternalConnectionListener(null);
         }
