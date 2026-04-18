@@ -39,10 +39,11 @@ public class BluetoothConnectionManager {
         void onStateChanged(@NonNull ConnectionState state, @Nullable String detail);
     }
 
-        default void onFileReceived(@NonNull String fileName, @NonNull byte[] data) { }
     public interface MessageListener {
         void onMessageReceived(@NonNull String message);
-        default void onFileReceived(@NonNull String fileName, @NonNull byte[] data) { }
+
+        default void onFileReceived(@NonNull String fileName, @NonNull byte[] data) {
+        }
     }
 
     public interface ExternalMessageListener {
@@ -72,8 +73,7 @@ public class BluetoothConnectionManager {
 
     public BluetoothConnectionManager(
             @NonNull BluetoothAdapter bluetoothAdapter,
-            @NonNull ConnectionListener listener
-    ) {
+            @NonNull ConnectionListener listener) {
         this.bluetoothAdapter = bluetoothAdapter;
         this.listener = listener;
     }
@@ -144,16 +144,7 @@ public class BluetoothConnectionManager {
         }
 
         if (connectedThread == null) {
-            return false;Frame("T:" + message);
-    }
-
-    public synchronized boolean sendFile(@NonNull String fileName, @NonNull byte[] data) {
-        if (connectedThread == null) {
             return false;
-        }
-        String safeName = fileName.replace(":", "_").replace("\n", "_");
-        String encoded = Base64.encodeToString(data, Base64.NO_WRAP);
-        return connectedThread.writeFrame("F:" + safeName + ":" + encoded
         }
 
         return connectedThread.writeFrame("T:" + message);
@@ -251,35 +242,17 @@ public class BluetoothConnectionManager {
         onConnectionFailed(detail);
     }
 
-    private synchronized voFrame(@NonNull String frame) {
-        MessageListener listenerSnapshot;
-        ExternalMessageListener externalListenerSnapshot;
-        synchronized (this) {
-            listenerSnapshot = messageListener;
-            externalListenerSnapshot = externalMessageListener;
+    private synchronized void onConnectionLost(@Nullable String detail) {
+        if (currentState != ConnectionState.CONNECTED) {
+            return;
         }
-
-        if (frame.startsWith("F:")) {
-            int sep = frame.indexOf(':', 2);
-            if (sep > 2) {
-                final String fileName = frame.substring(2, sep);
-                final String b64 = frame.substring(sep + 1);
-                final byte[] data;
-                try {
-                    data = Base64.decode(b64, Base64.NO_WRAP);
-                } catch (IllegalArgumentException badBase64) {
-                    return;
-                }
-                mainHandler.post(() -> {
-                    if (listenerSnapshot != null) {
-                        listenerSnapshot.onFileReceived(fileName, data);
-                    }
-                });
-                return;
-            }
-        }
-
-        final String message = frame.startsWith("T:") ? frame.substring(2) : frame;        if (!isAccepting()) {
+        closeConnectedThread();
+        closeConnectedSocket();
+        connectedDeviceAddress = null;
+        connectedDeviceName = null;
+        notifyState(ConnectionState.DISCONNECTED,
+                detail == null ? "Connection lost" : detail);
+        if (!isAccepting()) {
             startAccepting();
         }
     }
@@ -341,7 +314,8 @@ public class BluetoothConnectionManager {
 
     private synchronized void closeConnectThread() {
         if (connectThread != null) {
-            // If connection is being finalized from the same thread, do not cancel/close its socket.
+            // If connection is being finalized from the same thread, do not cancel/close
+            // its socket.
             if (connectThread != Thread.currentThread()) {
                 connectThread.cancel();
             }
@@ -420,13 +394,11 @@ public class BluetoothConnectionManager {
                 if (insecure) {
                     serverSocket = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(
                             SERVICE_NAME,
-                            CHAT_SERVICE_UUID
-                    );
+                            CHAT_SERVICE_UUID);
                 } else {
                     serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(
                             SERVICE_NAME,
-                            CHAT_SERVICE_UUID
-                    );
+                            CHAT_SERVICE_UUID);
                 }
             } catch (IOException e) {
                 // Some devices may not support one listening mode; keep the other mode active.
@@ -512,7 +484,7 @@ public class BluetoothConnectionManager {
 
         void cancel() {
             interrupt();
-            closeSocketQuietly();8192
+            closeSocketQuietly();
         }
 
         private void closeSocketQuietly() {
@@ -534,18 +506,18 @@ public class BluetoothConnectionManager {
         private final BufferedOutputStream outputStream;
 
         ConnectedThread(@NonNull BluetoothSocket socket) {
-            this.socket = sframe = pending.substring(0, newlineIndex);
-                    pending.delete(0, newlineIndex + 1);
-                    if (!frame.isEmpty()) {
-                        onIncomingFrame(framOutputStream(socket.getOutputStream());
+            this.socket = socket;
+            try {
+                this.inputStream = new BufferedInputStream(socket.getInputStream());
+                this.outputStream = new BufferedOutputStream(socket.getOutputStream());
             } catch (IOException ioException) {
                 throw new IllegalStateException("Unable to access socket streams", ioException);
             }
         }
 
-        @OverrideFrame(@NonNull String frame) {
-            try {
-                byte[] payload = (fram2];
+        @Override
+        public void run() {
+            byte[] buffer = new byte[8192];
             StringBuilder pending = new StringBuilder();
 
             while (!isInterrupted()) {
@@ -598,4 +570,3 @@ public class BluetoothConnectionManager {
         }
     }
 }
-
