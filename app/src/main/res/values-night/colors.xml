@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_primary">#5AA8FF</color>
+    <color name="app_on_primary">#FF03152F</color>
+    <color name="app_surface">#FF0F172A</color>
+    <color name="app_on_surface">#FFE5E7EB</color>
+    <color name="chat_screen_background">#FF020617</color>
+    <color name="chat_input_background">#FF111827</color>
+    <color name="chat_incoming_bubble">#FF1E293B</color>
+    <color name="chat_outgoing_bubble">#FF0EA5E9</color>
+    <color name="chat_bubble_text">#FFE2E8F0</color>
+    <color name="chat_time_text">#FF94A3B8</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
+
