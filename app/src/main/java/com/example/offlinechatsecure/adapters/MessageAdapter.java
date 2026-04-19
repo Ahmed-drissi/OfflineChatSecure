@@ -1,8 +1,11 @@
 package com.example.offlinechatsecure.adapters;
 
+import android.net.Uri;
+import android.webkit.MimeTypeMap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -23,6 +26,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     private final List<ChatMessage> items = new ArrayList<>();
     private int lastAnimatedPosition = -1;
+    private OnMessageClickListener onMessageClickListener;
+
+    public interface OnMessageClickListener {
+        void onMessageClicked(@NonNull ChatMessage message);
+    }
+
+    public void setOnMessageClickListener(OnMessageClickListener listener) {
+        this.onMessageClickListener = listener;
+    }
 
     public void submitMessages(@NonNull List<ChatMessage> messages) {
         items.clear();
@@ -56,15 +68,41 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        int currentPosition = holder.getBindingAdapterPosition();
+        if (currentPosition == RecyclerView.NO_POSITION) {
+            return;
+        }
+
         MessageViewHolder messageHolder = (MessageViewHolder) holder;
-        ChatMessage message = items.get(position);
-        messageHolder.tvMessage.setText(message.getText());
+        ChatMessage message = items.get(currentPosition);
+        boolean isImageAttachment = isImageAttachment(messageHolder, message);
+        if (isImageAttachment) {
+            messageHolder.tvImage.setVisibility(View.VISIBLE);
+            messageHolder.tvImage.setImageURI(Uri.parse(message.getAttachmentUri()));
+            messageHolder.tvMessage.setVisibility(View.GONE);
+        } else {
+            messageHolder.tvImage.setVisibility(View.GONE);
+            messageHolder.tvImage.setImageDrawable(null);
+            messageHolder.tvMessage.setVisibility(View.VISIBLE);
+            messageHolder.tvMessage.setText(message.getText());
+        }
 
         String time = DateFormat.getTimeInstance(DateFormat.SHORT)
                 .format(new Date(message.getTimestamp()));
         messageHolder.tvTime.setText(time);
 
-        if (position > lastAnimatedPosition) {
+        holder.itemView.setOnClickListener(v -> {
+            if (onMessageClickListener == null) {
+                return;
+            }
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition == RecyclerView.NO_POSITION) {
+                return;
+            }
+            onMessageClickListener.onMessageClicked(items.get(adapterPosition));
+        });
+
+        if (currentPosition > lastAnimatedPosition) {
             holder.itemView.setAlpha(0f);
             holder.itemView.setTranslationY(22f);
             holder.itemView.animate()
@@ -72,7 +110,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     .translationY(0f)
                     .setDuration(220L)
                     .start();
-            lastAnimatedPosition = position;
+            lastAnimatedPosition = currentPosition;
         }
     }
 
@@ -85,12 +123,41 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         private final TextView tvMessage;
         private final TextView tvTime;
+        private final ImageView tvImage;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
             tvMessage = itemView.findViewById(R.id.tvMessageText);
             tvTime = itemView.findViewById(R.id.tvMessageTime);
+            tvImage = itemView.findViewById(R.id.ivMessageImage);
         }
+    }
+
+    private boolean isImageAttachment(@NonNull MessageViewHolder holder, @NonNull ChatMessage message) {
+        if (!message.hasAttachment()) {
+            return false;
+        }
+
+        try {
+            Uri uri = Uri.parse(message.getAttachmentUri());
+            String type = holder.itemView.getContext().getContentResolver().getType(uri);
+            if (type != null && type.startsWith("image/")) {
+                return true;
+            }
+
+            String path = uri.toString();
+            String extension = MimeTypeMap.getFileExtensionFromUrl(path);
+            if (extension != null && !extension.trim().isEmpty()) {
+                String guessed = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                        extension.toLowerCase()
+                );
+                return guessed != null && guessed.startsWith("image/");
+            }
+        } catch (Exception ignored) {
+            return false;
+        }
+
+        return false;
     }
 }
 

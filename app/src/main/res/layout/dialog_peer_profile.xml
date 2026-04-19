@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <ImageView
+        android:id="@+id/ivProfilePhotoPreview"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_icon_tile"
+        android:contentDescription="@string/chat_profile_photo"
+        android:padding="16dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_phone_line" />
+
+    <EditText
+        android:id="@+id/etProfileName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="@string/chat_profile_name_hint"
+        android:autofillHints="personName"
+        android:inputType="textPersonName"
+        android:maxLines="1"
+        android:textColor="@color/app_on_surface"
+        android:textColorHint="@color/app_on_surface_variant" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnChooseProfilePhoto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/chat_choose_photo" />
+
+        <Button
+            android:id="@+id/btnRemoveProfilePhoto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/chat_remove_photo" />
+    </LinearLayout>
+
+</LinearLayout>
+

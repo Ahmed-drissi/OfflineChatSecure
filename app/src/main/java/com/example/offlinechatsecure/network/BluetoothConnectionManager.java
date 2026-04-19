@@ -48,6 +48,14 @@ public class BluetoothConnectionManager {
         void onExternalMessageReceived(@NonNull String message);
     }
 
+    public interface ExternalFileListener {
+        void onExternalFileReceived(@NonNull String fileName, @NonNull byte[] data);
+    }
+
+    public interface FileTransferProgressListener {
+        void onProgressChanged(int progressPercent);
+    }
+
     private static final String SERVICE_NAME = "OfflineChatSecureRfcomm";
     public static final UUID CHAT_SERVICE_UUID = UUID.fromString("7d90d8df-aa4d-4f8a-8a1f-e7fb72b1e868");
 
@@ -64,6 +72,7 @@ public class BluetoothConnectionManager {
     private MessageListener messageListener;
     private ConnectionListener externalConnectionListener;
     private ExternalMessageListener externalMessageListener;
+    private ExternalFileListener externalFileListener;
     private final AtomicLong connectAttemptCounter = new AtomicLong(0L);
     private long activeConnectAttemptId = 0L;
     private String connectedDeviceAddress;
@@ -132,29 +141,52 @@ public class BluetoothConnectionManager {
         this.externalMessageListener = listener;
     }
 
+    public synchronized void setExternalFileListener(@Nullable ExternalFileListener listener) {
+        this.externalFileListener = listener;
+    }
+
     public synchronized void setExternalConnectionListener(@Nullable ConnectionListener listener) {
         this.externalConnectionListener = listener;
     }
 
-    public synchronized boolean sendMessage(@NonNull String message) {
+    public boolean sendMessage(@NonNull String message) {
         if (message.trim().isEmpty()) {
             return false;
         }
 
-        if (connectedThread == null) {
+        final ConnectedThread thread;
+        synchronized (this) {
+            thread = connectedThread;
+        }
+        if (thread == null) {
             return false;
         }
 
-        return connectedThread.writeFrame("T:" + message);
+        return thread.writeFrame("T:" + message);
     }
 
-    public synchronized boolean sendFile(@NonNull String fileName, @NonNull byte[] data) {
-        if (connectedThread == null) {
+    public boolean sendFile(@NonNull String fileName, @NonNull byte[] data) {
+        return sendFile(fileName, data, null);
+    }
+
+    public boolean sendFile(
+            @NonNull String fileName,
+            @NonNull byte[] data,
+            @Nullable FileTransferProgressListener progressListener
+    ) {
+        final ConnectedThread thread;
+        synchronized (this) {
+            thread = connectedThread;
+        }
+        if (thread == null) {
             return false;
         }
         String safeName = fileName.replace(":", "_").replace("\n", "_");
         String encoded = Base64.encodeToString(data, Base64.NO_WRAP);
-        return connectedThread.writeFrame("F:" + safeName + ":" + encoded);
+        return thread.writeFrameWithProgress(
+                "F:" + safeName + ":" + encoded,
+                progressListener
+        );
     }
 
     public synchronized boolean isConnected() {
@@ -258,9 +290,11 @@ public class BluetoothConnectionManager {
     private void onIncomingFrame(@NonNull String frame) {
         MessageListener listenerSnapshot;
         ExternalMessageListener externalListenerSnapshot;
+        ExternalFileListener externalFileListenerSnapshot;
         synchronized (this) {
             listenerSnapshot = messageListener;
             externalListenerSnapshot = externalMessageListener;
+            externalFileListenerSnapshot = externalFileListener;
         }
 
         if (frame.startsWith("F:")) {
@@ -277,6 +311,9 @@ public class BluetoothConnectionManager {
                 mainHandler.post(() -> {
                     if (listenerSnapshot != null) {
                         listenerSnapshot.onFileReceived(fileName, data);
+                    }
+                    if (externalFileListenerSnapshot != null) {
+                        externalFileListenerSnapshot.onExternalFileReceived(fileName, data);
                     }
                 });
                 return;
@@ -502,6 +539,7 @@ public class BluetoothConnectionManager {
         private final BluetoothSocket socket;
         private final BufferedInputStream inputStream;
         private final BufferedOutputStream outputStream;
+        private final Object writeLock = new Object();
 
         ConnectedThread(@NonNull BluetoothSocket socket) {
             this.socket = socket;
@@ -547,10 +585,44 @@ public class BluetoothConnectionManager {
         }
 
         boolean writeFrame(@NonNull String frame) {
+            return writeFrameWithProgress(frame, null);
+        }
+
+        boolean writeFrameWithProgress(
+                @NonNull String frame,
+                @Nullable FileTransferProgressListener progressListener
+        ) {
             try {
                 byte[] payload = (frame + "\n").getBytes(StandardCharsets.UTF_8);
-                outputStream.write(payload);
-                outputStream.flush();
+                int totalBytes = payload.length;
+                int sentBytes = 0;
+                int lastProgress = -1;
+
+                if (progressListener != null) {
+                    progressListener.onProgressChanged(0);
+                    lastProgress = 0;
+                }
+
+                synchronized (writeLock) {
+                    final int chunkSize = 8192;
+                    while (sentBytes < totalBytes) {
+                        int writeCount = Math.min(chunkSize, totalBytes - sentBytes);
+                        outputStream.write(payload, sentBytes, writeCount);
+                        sentBytes += writeCount;
+
+                        if (progressListener != null) {
+                            int progress = (int) ((sentBytes * 100L) / totalBytes);
+                            if (progress != lastProgress) {
+                                progressListener.onProgressChanged(progress);
+                                lastProgress = progress;
+                            }
+                        }
+                    }
+                    outputStream.flush();
+                }
+                if (progressListener != null && lastProgress < 100) {
+                    progressListener.onProgressChanged(100);
+                }
                 return true;
             } catch (IOException writeException) {
                 onConnectionLost("Failed to send message");

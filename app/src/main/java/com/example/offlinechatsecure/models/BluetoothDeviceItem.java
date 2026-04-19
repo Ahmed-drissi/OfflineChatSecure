@@ -12,6 +12,7 @@ public class BluetoothDeviceItem {
     private final String address;
     private final boolean paired;
     private int rssi;
+    private boolean appReachable;
 
     public BluetoothDeviceItem(@NonNull String name, @NonNull String address) {
         this(name, address, false, RSSI_UNKNOWN);
@@ -22,6 +23,7 @@ public class BluetoothDeviceItem {
         this.address = address;
         this.paired = paired;
         this.rssi = rssi;
+        this.appReachable = false;
     }
 
     @NonNull
@@ -44,6 +46,14 @@ public class BluetoothDeviceItem {
 
     public void setRssi(int rssi) {
         this.rssi = rssi;
+    }
+
+    public boolean isAppReachable() {
+        return appReachable;
+    }
+
+    public void setAppReachable(boolean appReachable) {
+        this.appReachable = appReachable;
     }
 
     /** 0..4 bars based on RSSI in dBm. Returns 0 if unknown. */

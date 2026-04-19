@@ -67,7 +67,8 @@ public class OfflineChatSecureApp extends Application implements DefaultLifecycl
                         basePaddingTop + bars.top,
                         basePaddingRight + bars.right,
                         basePaddingBottom + bars.bottom);
-                return WindowInsetsCompat.CONSUMED;
+                // Do not consume insets here so IME insets can still resize activity layouts.
+                return insets;
             });
             ViewCompat.requestApplyInsets(root);
         }

@@ -57,13 +57,14 @@
                 app:layout_constraintTop_toTopOf="parent">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:id="@+id/ivChatPeerPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:layout_gravity="center"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_phone_line"
-                    android:tint="@color/app_primary"
-                    app:tint="@color/app_primary" />
+                    android:padding="12dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_phone_line" />
 
             </com.google.android.material.card.MaterialCardView>
 
@@ -171,7 +172,7 @@
         android:layout_marginBottom="8dp"
         android:clipToPadding="false"
         android:paddingBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@id/inputContainer"
+        app:layout_constraintBottom_toTopOf="@id/fileTransferContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvDaySeparator"
@@ -228,6 +229,40 @@
             android:src="@drawable/ic_send_plane_line"
             android:tint="@color/app_on_primary"
             app:tint="@color/app_on_primary" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/fileTransferContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/inputContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ProgressBar
+            android:id="@+id/pbFileTransfer"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:layout_weight="1"
+            android:indeterminate="true"
+            android:max="100"
+            android:progress="0" />
+
+        <TextView
+            android:id="@+id/tvFileTransferProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:textColor="@color/app_on_surface_variant"
+            android:textSize="12sp"
+            tools:text="45%" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

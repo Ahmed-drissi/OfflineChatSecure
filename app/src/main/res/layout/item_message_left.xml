@@ -22,6 +22,19 @@
         android:textColor="@color/chat_bubble_text"
         android:textSize="15sp" />
 
+    <ImageView
+        android:id="@+id/ivMessageImage"
+        android:layout_width="220dp"
+        android:layout_height="180dp"
+        android:layout_marginTop="4dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/bg_message_image_left"
+        android:clipToOutline="true"
+        android:contentDescription="@null"
+        android:padding="0dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/tvMessageTime"
         android:layout_width="wrap_content"

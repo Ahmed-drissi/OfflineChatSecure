@@ -68,7 +68,7 @@ public final class MessageNotificationHelper {
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
-                0,
+                senderAddress.hashCode(),
                 openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -112,7 +112,7 @@ public final class MessageNotificationHelper {
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
-                1,
+                senderAddress.hashCode() ^ 0x7F11,
                 openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );

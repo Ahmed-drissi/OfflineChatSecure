@@ -5,12 +5,18 @@ import android.app.KeyguardManager;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.content.ContentValues;
 import android.content.pm.PackageManager;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.Context;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,6 +37,11 @@ import com.example.offlinechatsecure.network.BluetoothSession;
 import com.example.offlinechatsecure.utils.AppAuthState;
 import com.example.offlinechatsecure.utils.BiometricHelper;
 import com.example.offlinechatsecure.utils.MessageNotificationHelper;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -59,6 +70,19 @@ public class MainActivity extends AppCompatActivity {
     private boolean isConnectionInProgress;
     private DBHelper dbHelper;
     private int unreadMessagesCount;
+    private BluetoothConnectionManager.ConnectionState lastConnectionState =
+            BluetoothConnectionManager.ConnectionState.IDLE;
+    private static final String TAG = "MainActivity";
+
+    private static final class SavedIncomingFile {
+        private final String attachmentUri;
+        private final String displayPath;
+
+        SavedIncomingFile(@NonNull String attachmentUri, @NonNull String displayPath) {
+            this.attachmentUri = attachmentUri;
+            this.displayPath = displayPath;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,11 +130,14 @@ public class MainActivity extends AppCompatActivity {
             connectionManager = new BluetoothConnectionManager(
                     bluetoothAdapter,
                     (state, detail) -> runOnUiThread(() -> {
+                        BluetoothConnectionManager.ConnectionState previousState = lastConnectionState;
+                        lastConnectionState = state;
                         isConnectionEstablished = state == BluetoothConnectionManager.ConnectionState.CONNECTED;
                         isConnectionInProgress = state == BluetoothConnectionManager.ConnectionState.CONNECTING;
 
                         if (state == BluetoothConnectionManager.ConnectionState.CONNECTED
-                                && !AppAuthState.isAppInForeground()) {
+                                && previousState != BluetoothConnectionManager.ConnectionState.CONNECTING
+                                && !AppAuthState.isChatScreenActive()) {
                             String senderName = connectionManager.getConnectedDeviceName();
                             if (senderName == null || senderName.trim().isEmpty()) {
                                 senderName = getString(R.string.chat_unknown_peer);
@@ -146,12 +173,10 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 String senderAddress = connectionManager.getConnectedDeviceAddress();
-                if (senderAddress == null || senderAddress.trim().isEmpty()) {
-                    senderAddress = senderName;
-                }
+                String peerKey = resolvePeerStorageKey(senderAddress, senderName);
 
                 ChatMessage incoming = new ChatMessage(message, System.currentTimeMillis(), false);
-                dbHelper.insertMessage(senderAddress, incoming);
+                persistIncomingMessage(peerKey, incoming);
 
                 unreadMessagesCount++;
                 runOnUiThread(this::updateOpenChatButtonState);
@@ -159,8 +184,57 @@ public class MainActivity extends AppCompatActivity {
                 MessageNotificationHelper.showIncomingMessageNotification(
                         getApplicationContext(),
                         senderName,
-                        senderAddress,
+                        peerKey,
                         message
+                );
+            });
+
+            connectionManager.setExternalFileListener((fileName, data) -> {
+                if (AppAuthState.isChatScreenActive()) {
+                    return;
+                }
+
+                String senderName = connectionManager.getConnectedDeviceName();
+                if (senderName == null || senderName.trim().isEmpty()) {
+                    senderName = getString(R.string.chat_unknown_peer);
+                }
+
+                String senderAddress = connectionManager.getConnectedDeviceAddress();
+                String peerKey = resolvePeerStorageKey(senderAddress, senderName);
+
+                SavedIncomingFile savedIncoming = saveIncomingFilePayload(fileName, data);
+                boolean isImage = isImageFileName(fileName);
+                String label = isImage
+                        ? getString(R.string.chat_image_received)
+                        : getString(R.string.chat_file_received, fileName);
+
+                String attachmentUri = null;
+                if (savedIncoming != null) {
+                    attachmentUri = savedIncoming.attachmentUri;
+                    if (!isImage) {
+                        label = label + "\n" + getString(
+                                R.string.chat_file_saved_to,
+                                savedIncoming.displayPath
+                        );
+                    }
+                }
+
+                ChatMessage incomingFile = new ChatMessage(
+                        label,
+                        System.currentTimeMillis(),
+                        false,
+                        attachmentUri
+                );
+                persistIncomingMessage(peerKey, incomingFile);
+
+                unreadMessagesCount++;
+                runOnUiThread(this::updateOpenChatButtonState);
+
+                MessageNotificationHelper.showIncomingMessageNotification(
+                        getApplicationContext(),
+                        senderName,
+                        peerKey,
+                        label
                 );
             });
             BluetoothSession.setConnectionManager(connectionManager);
@@ -264,6 +338,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (isFinishing() && connectionManager != null) {
             connectionManager.setExternalMessageListener(null);
+            connectionManager.setExternalFileListener(null);
             connectionManager.release();
             BluetoothSession.clear();
         }
@@ -662,5 +737,99 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .setPositiveButton(R.string.exit_label, (dialog, which) -> finishAffinity())
                 .show();
+    }
+
+    @NonNull
+    private String resolvePeerStorageKey(String senderAddress, @NonNull String senderName) {
+        if (senderAddress != null && !senderAddress.trim().isEmpty()) {
+            return senderAddress;
+        }
+        return "unknown:" + senderName;
+    }
+
+    private void persistIncomingMessage(@NonNull String peerKey, @NonNull ChatMessage incoming) {
+        try {
+            if (dbHelper != null) {
+                dbHelper.insertMessage(peerKey, incoming);
+                return;
+            }
+
+            Context appContext = getApplicationContext();
+            try (DBHelper tempDb = new DBHelper(appContext)) {
+                tempDb.insertMessage(peerKey, incoming);
+            }
+        } catch (Exception exception) {
+            // Keep notification flow alive even if persistence fails unexpectedly.
+        }
+    }
+
+    private SavedIncomingFile saveIncomingFilePayload(@NonNull String fileName, @NonNull byte[] data) {
+        String safeFileName = sanitizeFileName(fileName);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Downloads.DISPLAY_NAME, safeFileName);
+                values.put(MediaStore.Downloads.RELATIVE_PATH,
+                        Environment.DIRECTORY_DOWNLOADS + "/BlueLink");
+                Uri uri = getContentResolver().insert(
+                        MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                        values
+                );
+                if (uri == null) {
+                    return null;
+                }
+
+                try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    if (out != null) {
+                        out.write(data);
+                    }
+                }
+
+                return new SavedIncomingFile(uri.toString(), "Downloads/BlueLink/" + safeFileName);
+            }
+
+            File dir = new File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "BlueLink"
+            );
+            if (!dir.exists() && !dir.mkdirs()) {
+                dir = getFilesDir();
+            }
+
+            File outFile = new File(dir, safeFileName);
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                fos.write(data);
+            }
+
+            Uri contentUri = androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    getPackageName() + ".fileprovider",
+                    outFile
+            );
+            return new SavedIncomingFile(contentUri.toString(), outFile.getAbsolutePath());
+        } catch (IOException | IllegalArgumentException exception) {
+            android.util.Log.w(TAG, "Failed to save incoming background file", exception);
+            return null;
+        }
+    }
+
+    @NonNull
+    private String sanitizeFileName(@NonNull String fileName) {
+        String safeName = fileName.replace('/', '_').replace('\\', '_').trim();
+        if (safeName.isEmpty()) {
+            safeName = "file_" + System.currentTimeMillis();
+        }
+        return safeName;
+    }
+
+    private boolean isImageFileName(@NonNull String fileName) {
+        String extension = MimeTypeMap.getFileExtensionFromUrl(fileName);
+        if (extension == null || extension.trim().isEmpty()) {
+            return false;
+        }
+        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                extension.toLowerCase()
+        );
+        return mimeType != null && mimeType.startsWith("image/");
     }
 }

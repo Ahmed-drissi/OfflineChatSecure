@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -26,7 +27,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -34,14 +34,20 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.offlinechatsecure.R;
 import com.example.offlinechatsecure.adapters.DeviceListAdapter;
+import com.example.offlinechatsecure.database.DBHelper;
 import com.example.offlinechatsecure.models.BluetoothDeviceItem;
+import com.example.offlinechatsecure.network.BluetoothConnectionManager;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-public class DeviceListActivity extends AppCompatActivity {
+public class DeviceListActivity extends AuthenticatedActivity {
 
     public static final String EXTRA_SELECTED_DEVICE_NAME = "extra_selected_device_name";
     public static final String EXTRA_SELECTED_DEVICE_ADDRESS = "extra_selected_device_address";
@@ -59,6 +65,9 @@ public class DeviceListActivity extends AppCompatActivity {
     private boolean receiverRegistered;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean pendingStartAfterSettings;
+    private DBHelper dbHelper;
+    private final Set<String> chattedPeerAddresses = new LinkedHashSet<>();
+    private final Set<String> pendingUuidChecks = new LinkedHashSet<>();
 
     private final BroadcastReceiver scanReceiver = new BroadcastReceiver() {
         @Override
@@ -96,6 +105,27 @@ public class DeviceListActivity extends AppCompatActivity {
             if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 showScanning(false);
                 updateEmptyState();
+            }
+
+            if (BluetoothDevice.ACTION_UUID.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (device == null || device.getAddress() == null) {
+                    return;
+                }
+
+                String address = device.getAddress();
+                pendingUuidChecks.remove(address);
+
+                BluetoothDeviceItem existing = discoveredMap.get(address);
+                if (existing == null) {
+                    return;
+                }
+
+                android.os.Parcelable[] raw = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
+                ParcelUuid[] uuids = toParcelUuidArray(raw);
+                boolean reachable = containsChatServiceUuid(uuids);
+                existing.setAppReachable(reachable);
+                publishDevices();
             }
         }
     };
@@ -136,6 +166,8 @@ public class DeviceListActivity extends AppCompatActivity {
 
         BluetoothManager manager = getSystemService(BluetoothManager.class);
         bluetoothAdapter = manager != null ? manager.getAdapter() : null;
+        dbHelper = new DBHelper(this);
+        refreshChattedPeerAddresses();
 
         setupUi();
 
@@ -159,6 +191,10 @@ public class DeviceListActivity extends AppCompatActivity {
         stopDiscovery();
         unregisterScanReceiverSafely();
         handler.removeCallbacksAndMessages(null);
+        if (dbHelper != null) {
+            dbHelper.close();
+            dbHelper = null;
+        }
         super.onDestroy();
     }
 
@@ -220,6 +256,8 @@ public class DeviceListActivity extends AppCompatActivity {
             return;
         }
         discoveredMap.clear();
+        pendingUuidChecks.clear();
+        refreshChattedPeerAddresses();
         publishDevices();
         loadBondedDevices();
         startDiscovery();
@@ -240,7 +278,12 @@ public class DeviceListActivity extends AppCompatActivity {
     }
 
     private void publishDevices() {
-        List<BluetoothDeviceItem> snapshot = new ArrayList<>(discoveredMap.values());
+        List<BluetoothDeviceItem> snapshot = new ArrayList<>();
+        for (BluetoothDeviceItem item : discoveredMap.values()) {
+            if (!item.isPaired() || chattedPeerAddresses.contains(normalizeAddress(item.getAddress()))) {
+                snapshot.add(item);
+            }
+        }
         adapter.setDevices(snapshot);
         updateEmptyState();
     }
@@ -250,6 +293,7 @@ public class DeviceListActivity extends AppCompatActivity {
             return;
         }
 
+        refreshChattedPeerAddresses();
         loadBondedDevices();
 
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R && !isLocationEnabled()) {
@@ -306,6 +350,7 @@ public class DeviceListActivity extends AppCompatActivity {
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothDevice.ACTION_UUID);
         registerReceiver(scanReceiver, filter);
         receiverRegistered = true;
     }
@@ -416,15 +461,21 @@ public class DeviceListActivity extends AppCompatActivity {
                 String address = bonded.getAddress();
                 if (!discoveredMap.containsKey(address)) {
                     String bondedName = getSafeDeviceName(bonded);
+                    BluetoothDeviceItem item = new BluetoothDeviceItem(
+                            bondedName,
+                            address,
+                            true,
+                            BluetoothDeviceItem.RSSI_UNKNOWN
+                    );
+                    item.setAppReachable(false);
                     discoveredMap.put(
                             address,
-                            new BluetoothDeviceItem(
-                                    bondedName,
-                                    address,
-                                    true,
-                                    BluetoothDeviceItem.RSSI_UNKNOWN
-                            )
+                            item
                     );
+                }
+
+                if (chattedPeerAddresses.contains(normalizeAddress(address))) {
+                    requestServiceAvailability(bonded);
                 }
             }
         } catch (SecurityException ignored) {
@@ -432,6 +483,64 @@ public class DeviceListActivity extends AppCompatActivity {
         }
 
         publishDevices();
+    }
+
+    private void refreshChattedPeerAddresses() {
+        chattedPeerAddresses.clear();
+        if (dbHelper == null) {
+            return;
+        }
+        chattedPeerAddresses.addAll(dbHelper.getPeerAddressesWithHistory());
+    }
+
+    @NonNull
+    private String normalizeAddress(@NonNull String address) {
+        return address.trim().toUpperCase(Locale.US);
+    }
+
+    private void requestServiceAvailability(@NonNull BluetoothDevice device) {
+        String address = device.getAddress();
+        if (address == null || pendingUuidChecks.contains(address)) {
+            return;
+        }
+
+        pendingUuidChecks.add(address);
+        try {
+            boolean started = device.fetchUuidsWithSdp();
+            if (!started) {
+                pendingUuidChecks.remove(address);
+            }
+        } catch (SecurityException ignored) {
+            pendingUuidChecks.remove(address);
+        }
+    }
+
+    private boolean containsChatServiceUuid(ParcelUuid[] uuids) {
+        if (uuids == null || uuids.length == 0) {
+            return false;
+        }
+
+        UUID expected = BluetoothConnectionManager.CHAT_SERVICE_UUID;
+        for (ParcelUuid uuid : uuids) {
+            if (uuid != null && expected.equals(uuid.getUuid())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ParcelUuid[] toParcelUuidArray(android.os.Parcelable[] raw) {
+        if (raw == null || raw.length == 0) {
+            return new ParcelUuid[0];
+        }
+
+        List<ParcelUuid> uuids = new ArrayList<>();
+        for (android.os.Parcelable parcelable : raw) {
+            if (parcelable instanceof ParcelUuid) {
+                uuids.add((ParcelUuid) parcelable);
+            }
+        }
+        return uuids.toArray(new ParcelUuid[0]);
     }
 
     private void showLocationRequiredDialog() {

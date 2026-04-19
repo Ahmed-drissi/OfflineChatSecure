@@ -33,13 +33,14 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:id="@+id/ivConversationPeerPhoto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:layout_gravity="center"
                 android:contentDescription="@null"
-                android:src="@drawable/ic_chat_line"
-                android:tint="@color/app_primary"
-                app:tint="@color/app_primary" />
+                android:padding="12dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_chat_line" />
 
         </com.google.android.material.card.MaterialCardView>
 
