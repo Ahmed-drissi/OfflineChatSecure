@@ -321,7 +321,14 @@ public class ChatActivity extends AuthenticatedActivity {
             connectionManager.setExternalConnectionListener(connectionStateListener);
             isConnectionActive = connectionManager.isConnected();
             updateComposerState();
+            maybeShowPendingDisconnectAlert(false);
         }
+    }
+
+    @Override
+    protected void onUnlocked() {
+        super.onUnlocked();
+        maybeShowPendingDisconnectAlert(true);
     }
 
     @Override
@@ -420,6 +427,26 @@ public class ChatActivity extends AuthenticatedActivity {
                     finish();
                 })
                 .show();
+    }
+
+    private void maybeShowPendingDisconnectAlert(boolean forceAfterUnlock) {
+        if (readOnlyMode || connectionManager == null || disconnectAlertShown || isFinishing()) {
+            return;
+        }
+
+        if (!forceAfterUnlock && AppAuthState.isReauthRequired()) {
+            return;
+        }
+
+        String pendingDetail = connectionManager.consumePendingUnexpectedDisconnectDetail();
+        if (pendingDetail == null || pendingDetail.trim().isEmpty()) {
+            return;
+        }
+
+        isConnectionActive = false;
+        updateComposerState();
+        disconnectAlertShown = true;
+        showDisconnectedAlert(pendingDetail);
     }
 
     private void showEditPeerProfileDialog() {

@@ -77,6 +77,7 @@ public class BluetoothConnectionManager {
     private long activeConnectAttemptId = 0L;
     private String connectedDeviceAddress;
     private String connectedDeviceName;
+    private String pendingUnexpectedDisconnectDetail;
 
     public BluetoothConnectionManager(
             @NonNull BluetoothAdapter bluetoothAdapter,
@@ -130,7 +131,15 @@ public class BluetoothConnectionManager {
         closeConnectedSocket();
         connectedDeviceAddress = null;
         connectedDeviceName = null;
+        pendingUnexpectedDisconnectDetail = null;
         notifyState(ConnectionState.IDLE, "Connection manager released");
+    }
+
+    @Nullable
+    public synchronized String consumePendingUnexpectedDisconnectDetail() {
+        String detail = pendingUnexpectedDisconnectDetail;
+        pendingUnexpectedDisconnectDetail = null;
+        return detail;
     }
 
     public synchronized void setMessageListener(@Nullable MessageListener listener) {
@@ -233,6 +242,7 @@ public class BluetoothConnectionManager {
         BluetoothDevice remote = socket.getRemoteDevice();
         connectedDeviceAddress = remote.getAddress();
         connectedDeviceName = safeName(remote);
+        pendingUnexpectedDisconnectDetail = null;
         notifyState(ConnectionState.CONNECTED, "Connected: " + safeName(remote));
     }
 
@@ -280,8 +290,9 @@ public class BluetoothConnectionManager {
         closeConnectedSocket();
         connectedDeviceAddress = null;
         connectedDeviceName = null;
-        notifyState(ConnectionState.DISCONNECTED,
-                detail == null ? "Connection lost" : detail);
+        String resolvedDetail = detail == null ? "Connection lost" : detail;
+        pendingUnexpectedDisconnectDetail = resolvedDetail;
+        notifyState(ConnectionState.DISCONNECTED, resolvedDetail);
         if (!isAccepting()) {
             startAccepting();
         }
