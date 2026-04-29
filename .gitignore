@@ -16,3 +16,5 @@ google-services.json
 Thumbs.db
 *.class
 *.dex
+.idea/
+.idea_backup/
