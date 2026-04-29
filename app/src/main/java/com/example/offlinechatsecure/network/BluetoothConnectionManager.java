@@ -58,6 +58,7 @@ public class BluetoothConnectionManager {
 
     private static final String SERVICE_NAME = "OfflineChatSecureRfcomm";
     public static final UUID CHAT_SERVICE_UUID = UUID.fromString("7d90d8df-aa4d-4f8a-8a1f-e7fb72b1e868");
+    public static final UUID PRESENCE_SERVICE_UUID = UUID.fromString("8e90d8df-aa4d-4f8a-8a1f-e7fb72b1e869");
 
     private final BluetoothAdapter bluetoothAdapter;
     private final ConnectionListener listener;
@@ -65,6 +66,7 @@ public class BluetoothConnectionManager {
 
     private AcceptThread secureAcceptThread;
     private AcceptThread insecureAcceptThread;
+    private PresenceServerThread presenceServerThread;
     private ConnectThread connectThread;
     private ConnectedThread connectedThread;
     private BluetoothSocket connectedSocket;
@@ -95,7 +97,17 @@ public class BluetoothConnectionManager {
         insecureAcceptThread = new AcceptThread(true);
         secureAcceptThread.start();
         insecureAcceptThread.start();
+        
+        startPresencePingServer();
+        
         notifyState(ConnectionState.LISTENING, "Waiting for incoming connection");
+    }
+
+    private void startPresencePingServer() {
+        if (presenceServerThread == null) {
+            presenceServerThread = new PresenceServerThread();
+            presenceServerThread.start();
+        }
     }
 
     public synchronized void connectToDevice(@NonNull BluetoothDevice device) {
@@ -118,7 +130,7 @@ public class BluetoothConnectionManager {
         connectedDeviceAddress = null;
         connectedDeviceName = null;
         notifyState(ConnectionState.DISCONNECTED, "Connection closed");
-        if (!isAccepting()) {
+        if (!isAccepting() && currentState != ConnectionState.CONNECTING) {
             startAccepting();
         }
     }
@@ -127,6 +139,7 @@ public class BluetoothConnectionManager {
         activeConnectAttemptId = 0L;
         closeConnectThread();
         closeAcceptThread();
+        closePresenceServerThread();
         closeConnectedThread();
         closeConnectedSocket();
         connectedDeviceAddress = null;
@@ -354,6 +367,13 @@ public class BluetoothConnectionManager {
         }
     }
 
+    private synchronized void closePresenceServerThread() {
+        if (presenceServerThread != null) {
+            presenceServerThread.cancel();
+            presenceServerThread = null;
+        }
+    }
+
     private synchronized boolean isAccepting() {
         return secureAcceptThread != null || insecureAcceptThread != null;
     }
@@ -473,6 +493,50 @@ public class BluetoothConnectionManager {
                     serverSocket.close();
                 } catch (IOException ignored) {
                     // Socket close exception can be ignored on shutdown.
+                }
+                serverSocket = null;
+            }
+        }
+    }
+
+    private final class PresenceServerThread extends Thread {
+        private BluetoothServerSocket serverSocket;
+
+        @Override
+        public void run() {
+            try {
+                // Listen via insecure since it's just a connection ping drop
+                serverSocket = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(
+                        SERVICE_NAME + "_Presence",
+                        PRESENCE_SERVICE_UUID);
+            } catch (IOException e) {
+                return;
+            }
+
+            while (!isInterrupted()) {
+                BluetoothSocket socket;
+                try {
+                    socket = serverSocket.accept();
+                } catch (IOException e) {
+                    break;
+                }
+
+                if (socket != null) {
+                    // It's a ping connection, immediately close to indicate we are alive
+                    try {
+                        socket.close();
+                    } catch (IOException ignored) {
+                    }
+                }
+            }
+        }
+
+        void cancel() {
+            interrupt();
+            if (serverSocket != null) {
+                try {
+                    serverSocket.close();
+                } catch (IOException ignored) {
                 }
                 serverSocket = null;
             }

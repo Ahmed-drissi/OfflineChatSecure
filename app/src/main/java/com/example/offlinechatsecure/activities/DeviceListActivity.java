@@ -46,6 +46,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DeviceListActivity extends AuthenticatedActivity {
 
@@ -64,6 +66,7 @@ public class DeviceListActivity extends AuthenticatedActivity {
     private EditText etFilter;
     private boolean receiverRegistered;
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private ExecutorService pingExecutor;
     private boolean pendingStartAfterSettings;
     private DBHelper dbHelper;
     private final Set<String> chattedPeerAddresses = new LinkedHashSet<>();
@@ -163,6 +166,7 @@ public class DeviceListActivity extends AuthenticatedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_device_list);
+        pingExecutor = Executors.newCachedThreadPool();
 
         BluetoothManager manager = getSystemService(BluetoothManager.class);
         bluetoothAdapter = manager != null ? manager.getAdapter() : null;
@@ -191,6 +195,9 @@ public class DeviceListActivity extends AuthenticatedActivity {
         stopDiscovery();
         unregisterScanReceiverSafely();
         handler.removeCallbacksAndMessages(null);
+        if (pingExecutor != null) {
+            pingExecutor.shutdownNow();
+        }
         if (dbHelper != null) {
             dbHelper.close();
             dbHelper = null;
@@ -503,15 +510,31 @@ public class DeviceListActivity extends AuthenticatedActivity {
         if (address == null || pendingUuidChecks.contains(address)) {
             return;
         }
-
         pendingUuidChecks.add(address);
-        try {
-            boolean started = device.fetchUuidsWithSdp();
-            if (!started) {
-                pendingUuidChecks.remove(address);
-            }
-        } catch (SecurityException ignored) {
-            pendingUuidChecks.remove(address);
+
+        // Ping presence via a short socket connection
+        if (pingExecutor != null && !pingExecutor.isShutdown()) {
+            pingExecutor.execute(() -> {
+                boolean reachable = false;
+                try {
+                    android.bluetooth.BluetoothSocket socket = device.createInsecureRfcommSocketToServiceRecord(
+                            BluetoothConnectionManager.PRESENCE_SERVICE_UUID);
+                    socket.connect();
+                    socket.close();
+                    reachable = true;
+                } catch (Exception ignored) {
+                }
+
+                boolean finalReachable = reachable;
+                handler.post(() -> {
+                    pendingUuidChecks.remove(address);
+                    BluetoothDeviceItem existing = discoveredMap.get(address);
+                    if (existing != null) {
+                        existing.setAppReachable(finalReachable);
+                        publishDevices();
+                    }
+                });
+            });
         }
     }
 
@@ -554,5 +577,13 @@ public class DeviceListActivity extends AuthenticatedActivity {
                 })
                 .setNegativeButton(R.string.exit_label, (dialog, which) -> finish())
                 .show();
+    }
+
+    private void resetReachabilityForNewScan() {
+        pendingUuidChecks.clear();
+        for (BluetoothDeviceItem item : discoveredMap.values()) {
+            item.setAppReachable(false);
+        }
+        publishDevices();
     }
 }
