@@ -33,7 +33,7 @@ OfflineChatSecure is a fully offline, peer-to-peer secure messaging Android appl
 
 1.  Clone the repository to your local machine:
     ```bash
-    git clone https://github.com/yourusername/OfflineChatSecure.git
+    git clone https://github.com/Ahmed-drissi/OfflineChatSecure.git
     ```
 2.  Open the project in **Android Studio**.
 3.  Build the project to resolve dependencies via Gradle.
