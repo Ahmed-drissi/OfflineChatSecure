@@ -9,6 +9,7 @@
 .cxx
 local.properties
 *.ap_
+*.apk
 *.aab
 *.jks
 *.keystore
